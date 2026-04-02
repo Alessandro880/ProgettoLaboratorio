@@ -1,0 +1,32 @@
+# ========================
+# Ambienti Virtuali Python
+# ========================
+venv/
+.venv/
+env/
+
+# ========================
+# File temporanei di Python
+# ========================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# ========================
+# File di sistema macOS
+# ========================
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# ========================
+# Variabili d'ambiente (Password/Secret)
+# ========================
+.env
+
+# ========================
+# IDE e Editor (Es. VS Code, PyCharm)
+# ========================
+.vscode/
+.idea/
