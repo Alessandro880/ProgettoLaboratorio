@@ -1,4 +1,0 @@
-crawl4ai
-requests
-pydantic
-fastapi

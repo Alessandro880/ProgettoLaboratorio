@@ -14,4 +14,3 @@ domains_path = PROJECT_ROOT / "domains.json"
 with open(domains_path, "r", encoding="utf-8") as f:
     domains_data = json.load(f)
 
-print(domains_data)
