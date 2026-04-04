@@ -8,7 +8,7 @@ DIR_CORR = Path(__file__).resolve().parent
 if str(DIR_CORR) not in sys.path:
     sys.path.append(str(DIR_CORR))\
     
-from web_parsing import clean_web_content
+from web_parsing import clean_text
 
 
 async def main(url_search:str):
@@ -38,14 +38,18 @@ async def main(url_search:str):
         #result.cleaned_html    - HTML ripulito da script, stili e rumore
         #result.html            - HTML completo della pagina (non pulito)
 
-        html = result.html  # da crawl4ai
+        titolo,testo = clean_text(result.cleaned_html)
+        print(titolo)
+        print(testo)
 
-        result = clean_web_content(html)
+        # html = result.html  # da crawl4ai
 
-        print(result["title"])
-        print(result["content"])
+        # result = clean_web_content(html)
+
+        # print(result["title"])
+        # print(result["content"])
 
         
 #asyncio.run(main("https://www.business.reddit.com/blog/publishers-launch"))
 #asyncio.run(main("https://en.www.reddit.com/news/#main-content"))
-asyncio.run(main("https://en.wikipedia.org/wiki/Minerva"))
+asyncio.run(main("https://en.wikipedia.org/wiki/BabelNet"))
