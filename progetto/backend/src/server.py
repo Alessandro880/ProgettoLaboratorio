@@ -38,8 +38,7 @@ async def main(url_search:str):
         #result.cleaned_html    - HTML ripulito da script, stili e rumore
         #result.html            - HTML completo della pagina (non pulito)
 
-        titolo,testo = clean_text(result.cleaned_html)
-        print(titolo)
+        testo = clean_text(result.cleaned_html)
         print(testo)
 
         # html = result.html  # da crawl4ai
@@ -52,4 +51,6 @@ async def main(url_search:str):
         
 #asyncio.run(main("https://www.business.reddit.com/blog/publishers-launch"))
 #asyncio.run(main("https://en.www.reddit.com/news/#main-content"))
-asyncio.run(main("https://en.wikipedia.org/wiki/BabelNet"))
+#asyncio.run(main("https://en.wikipedia.org/wiki/BabelNet"))
+asyncio.run(main("https://en.wikipedia.org/wiki/Minerva"))
+

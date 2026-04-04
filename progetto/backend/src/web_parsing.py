@@ -2,6 +2,31 @@ from readability import Document
 from bs4 import BeautifulSoup
 import re
 
+
+def formatta_in_markdown(titolo, testo):
+    """
+    Riceve in input il titolo e il testo pulito estratti da clean_text
+    e restituisce una stringa formattata in Markdown.
+    """
+    markdown_parts = []
+    
+    # Formatta il titolo come Intestazione 1 (H1) se presente
+    if titolo:
+        markdown_parts.append(f"# {titolo.strip()}")
+        
+    # Aggiunge il corpo del testo se presente
+    if testo:
+        markdown_parts.append(testo.strip())
+        
+    # Unisce le parti con un doppio a capo per separare visivamente il titolo dal testo
+    return "\n\n".join(markdown_parts)
+
+# --- ESEMPIO DI UTILIZZO ---
+# html_input = "<html>...</html>"
+# titolo_estratto, testo_estratto = clean_text(html_input)
+# risultato_markdown = formatta_in_markdown(titolo_estratto, testo_estratto)
+# print(risultato_markdown)
+
 def clean_text(html_content):
     """
     Riceve in input l'HTML grezzo, ne estrae il titolo e il testo principale
@@ -84,7 +109,7 @@ def clean_text(html_content):
     # Sistema gli a capo per avere un testo bello e compatto
     testo_convertito = re.sub(r'\n{3,}', '\n\n', testo_convertito.strip())
 
-    return titolo, testo_convertito
+    return formatta_in_markdown(titolo, testo_convertito)
 
 
 
