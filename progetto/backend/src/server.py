@@ -1,5 +1,6 @@
 import asyncio
 import sys
+import re
 from pathlib import Path
 from crawl4ai import AsyncWebCrawler, BrowserConfig, CrawlerRunConfig, CacheMode
 
@@ -38,19 +39,20 @@ async def main(url_search:str):
         #result.cleaned_html    - HTML ripulito da script, stili e rumore
         #result.html            - HTML completo della pagina (non pulito)
 
-        testo = clean_text(result.cleaned_html)
-        print(testo)
 
-        # html = result.html  # da crawl4ai
 
-        # result = clean_web_content(html)
 
-        # print(result["title"])
-        # print(result["content"])
+        pattern = r"https?://(?:www\.)?([^/]+)"
+
+        domain = re.search(pattern, url_search)
+        print(domain.group(1))
+
+        testo = clean_text(result.html)
+        print(testo[1])
 
         
-#asyncio.run(main("https://www.business.reddit.com/blog/publishers-launch"))
+asyncio.run(main("https://www.business.reddit.com/blog/publishers-launch"))
 #asyncio.run(main("https://en.www.reddit.com/news/#main-content"))
 #asyncio.run(main("https://en.wikipedia.org/wiki/BabelNet"))
-asyncio.run(main("https://en.wikipedia.org/wiki/Minerva"))
+#asyncio.run(main("https://en.wikipedia.org/wiki/Minerva"))
 

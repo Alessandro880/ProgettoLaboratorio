@@ -19,7 +19,7 @@ def formatta_in_markdown(titolo, testo):
         markdown_parts.append(testo.strip())
         
     # Unisce le parti con un doppio a capo per separare visivamente il titolo dal testo
-    return "\n\n".join(markdown_parts)
+    return [titolo,"\n\n".join(markdown_parts)]
 
 # --- ESEMPIO DI UTILIZZO ---
 # html_input = "<html>...</html>"
