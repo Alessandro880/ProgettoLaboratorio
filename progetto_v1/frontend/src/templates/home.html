@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Web Scraper & Evaluator</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            margin: 0;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2.5rem;
+        }
+
+        p.subtitle {
+            text-align: center;
+            color: var(--text-muted);
+            margin-bottom: 40px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card h2 {
+            margin-top: 0;
+            font-size: 1.25rem;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .badge-get { background: #dbeafe; color: #1e40af; padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; }
+        .badge-post { background: #dcfce7; color: #166534; padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; }
+
+        .card p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            flex-grow: 1;
+        }
+
+        input[type="text"], input[type="url"] {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-family: inherit;
+        }
+
+        button, .btn-link {
+            display: inline-block;
+            background-color: var(--primary);
+            color: white;
+            padding: 10px 16px;
+            border: none;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 500;
+            cursor: pointer;
+            text-align: center;
+            width: 100%;
+            transition: background-color 0.2s;
+            box-sizing: border-box;
+        }
+
+        button:hover, .btn-link:hover {
+            background-color: var(--primary-hover);
+        }
+
+        form {
+            margin: 0;
+            padding: 0;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Pannello di Controllo</h1>
+        <p class="subtitle">Gestione Parsing, Gold Standard e Valutazione</p>
+
+        <div class="grid">
+            
+            <div class="card">
+                <h2><span class="badge-get">GET</span> Parser Documento</h2>
+                <p>Esegue il parser per un documento specifico di un dominio.</p>
+                <form action="/parse" method="GET">
+                    <input type="text" name="url" placeholder="Inserisci URL o ID documento" required>
+                    <button type="submit">Avvia Parser</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h2><span class="badge-get">GET</span> Lista Domini</h2>
+                <p>Restituisce l'elenco completo dei domini assegnati e disponibili nel sistema.</p>
+                <br>
+                <a href="/domains" class="btn-link">Visualizza Domini</a>
+            </div>
+
+            <div class="card">
+                <h2><span class="badge-get">GET</span> Gold Standard (Doc)</h2>
+                <p>Recupera il Gold Standard per un singolo documento specifico.</p>
+                <form action="/gold_standard" method="GET">
+                    <input type="text" name="doc_id" placeholder="ID del documento" required>
+                    <button type="submit">Cerca GS</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h2><span class="badge-get">GET</span> Full Gold Standard</h2>
+                <p>Restituisce l'intero dataset Gold Standard associato a un dominio.</p>
+                <form action="/full_gold_standard" method="GET">
+                    <input type="text" name="domain" placeholder="Nome del dominio (es. wikipedia)" required>
+                    <button type="submit">Scarica Full GS</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h2><span class="badge-post">POST</span> Evaluate</h2>
+                <p>Confronta i risultati del parsing con il Gold Standard per calcolare le metriche di valutazione.</p>
+                <form action="/evaluate" method="POST">
+                    <input type="text" name="parse_result_id" placeholder="ID Risultato Parsing" required>
+                    <button type="submit" style="background-color: #16a34a;">Calcola Metriche</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h2><span class="badge-get">GET</span> Full GS Eval</h2>
+                <p>Esegue e restituisce la valutazione completa sull'intero Gold Standard.</p>
+                <form action="/full_gs_eval" method="GET">
+                    <input type="text" name="domain" placeholder="Nome del dominio" required>
+                    <button type="submit">Esegui Valutazione Globale</button>
+                </form>
+            </div>
+
+        </div>
+    </div>
+
+</body>
+</html>

@@ -15,7 +15,7 @@ templates = Jinja2Templates(directory=str(cartella_templates))
 @app.get("/")
 def home(request: Request):
     # Passa i parametri usando esplicitamente i loro nomi (request=..., name=...)
-    return templates.TemplateResponse(request=request, name="index.html")
+    return templates.TemplateResponse(request=request, name="home.html")
 
 @app.get("/parse")
 def esegui_parser(request: Request, url: str):
