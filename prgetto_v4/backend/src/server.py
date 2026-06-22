@@ -456,11 +456,6 @@ def mostra_domini(request: Request):
 """
 @app.get("/gold_standard")
 def mostra_gold_standard(url: str):
-    db_host = os.getenv("DB_HOST", "mariadb")
-    db_port = int(os.getenv("DB_PORT", 3306))
-    db_user = os.getenv("DB_USER", "user")
-    db_password = os.getenv("DB_PASSWORD", "sonoio")
-    db_name = os.getenv("DB_NAME", "project_db")
     try:
             conn = mariadb.connect(
                 host=db_host,
@@ -652,11 +647,6 @@ def evaluate_judge(request: Request, dati: DatiInput):
 @app.get("/gold_standard_urls")
 def gold_standard_urls(request: Request, domain:str ):
     
-    db_host = os.getenv("DB_HOST", "mariadb")
-    db_port = int(os.getenv("DB_PORT", 3306))
-    db_user = os.getenv("DB_USER", "user")
-    db_password = os.getenv("DB_PASSWORD", "sonoio")
-    db_name = os.getenv("DB_NAME", "project_db")
     try:
             conn = mariadb.connect(
                 host=db_host,
