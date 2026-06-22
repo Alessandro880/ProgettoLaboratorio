@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Web Scraper & Evaluator</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --accent: #f1f5f9;
+            --hover-bg: #f1f5f9;
+        }
+
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: var(--bg); color: var(--text-main); margin: 0; padding: 40px 20px; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        h1 { text-align: center; margin-bottom: 10px; font-size: 2.5rem; }
+        p.subtitle { text-align: center; color: var(--text-muted); margin-bottom: 40px; }
+        
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+        .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); display: flex; flex-direction: column; }
+        .card h2 { margin-top: 0; font-size: 1.25rem; color: var(--primary); display: flex; align-items: center; gap: 8px; }
+        .badge-get { background: #dbeafe; color: #1e40af; padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; }
+        .badge-post { background: #dcfce7; color: #166534; padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; }
+        .card p { color: var(--text-muted); font-size: 0.95rem; flex-grow: 1; }
+
+        input[type="text"], input[type="url"], textarea { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid var(--border); border-radius: 6px; box-sizing: border-box; font-family: inherit; }
+        textarea { resize: vertical; min-height: 80px; }
+        button, .btn-link { display: inline-block; background-color: var(--primary); color: white; padding: 10px 16px; border: none; border-radius: 6px; text-decoration: none; font-weight: 500; cursor: pointer; text-align: center; width: 100%; transition: background-color 0.2s; box-sizing: border-box; }
+        button:hover, .btn-link:hover { background-color: var(--primary-hover); }
+        form { margin: 0; padding: 0; }
+        #result-view { display: none; max-width: 1200px; }
+        .header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 30px; 
+            border-bottom: 1px solid var(--border); 
+            padding-bottom: 20px; 
+            position: sticky; 
+            top: 0; 
+            background-color: var(--bg); 
+            z-index: 100; 
+            padding-top: 20px; 
+        }
+                .btn-back { text-decoration: none; color: var(--primary); font-weight: 500; display: flex; align-items: center; gap: 5px; cursor: pointer; background: none; border: none; padding: 0; text-align: left; width: auto; font-size: 1rem;}
+        .btn-back:hover { background: none; text-decoration: underline; color: var(--primary-hover); }
+        
+        .metadata-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
+        .meta-item strong { display: block; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 5px; }
+        .meta-item span { font-weight: 500; word-break: break-all; }
+        
+        .box { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; display: flex; flex-direction: column; min-height: 40vh; margin-bottom: 20px; }
+        .box-header { padding: 15px 20px; border-bottom: 1px solid var(--border); background: var(--accent); border-radius: 12px 12px 0 0; font-weight: bold; display: flex; justify-content: space-between; }
+        .content-area { padding: 30px; overflow-y: auto; flex-grow: 1; font-size: 1rem; white-space: pre-wrap; line-height: 1.6; }
+        .badge { font-size: 0.7rem; padding: 4px 8px; border-radius: 6px; background: #e2e8f0; font-weight: bold; }
+
+        /* Liste Domini e Documenti GS */
+        .domain-list { list-style: none; padding: 0; margin: 0; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
+        .domain-item { padding: 20px; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px; transition: background-color 0.2s; }
+        .domain-item:last-child { border-bottom: none; }
+        .domain-item:hover { background-color: var(--hover-bg); }
+        .domain-name { font-size: 1.1rem; font-weight: 500; color: var(--primary); text-decoration: none; word-break: break-all; }
+        .domain-snippet { font-size: 0.9rem; color: var(--text-muted); white-space: pre-wrap; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+        
+        .empty-state { text-align: center; padding: 40px; color: var(--text-muted); }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid var(--primary); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 40px auto; display: none; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        pre.json-viewer { background: #1e293b; color: #e2e8f0; padding: 20px; border-radius: 8px; overflow-x: auto; font-size: 0.9rem; font-family: monospace;}
+    </style>
+</head>
+<body>
+
+    <div class="container" id="dashboard-view">
+        <h1>Pannello di Controllo</h1>
+        <p class="subtitle">Esonero1 : 2103184  -  2063329  -  2118949</p>
+        <div class="loader" id="main-loader"></div>
+
+        <div class="grid" id="dashboard-grid">
+            <div class="card">
+                <h2><span class="badge-get">GET</span> Parse</h2>
+                <p>Esegue il parser per documento di un dominio.</p>
+                <form id="form-parse-get">
+                    <input type="text" name="url" placeholder="Inserisci URL o ID documento" required>
+                    <button type="submit">Avvia Parser</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h2><span class="badge-post">POST</span> Parse</h2>
+                <p>Esegue il parsing inviando direttamente il codice HTML e l'URL di riferimento.</p>
+                <form id="form-parse-post">
+                    <input type="url" name="url" placeholder="Inserisci URL di origine" required>
+                    <textarea name="html_text" placeholder="Incolla qui il codice HTML..." required></textarea>
+                    <button type="submit" style="background-color: #16a34a;">Avvia Parser HTML</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h2><span class="badge-get">GET</span> Lista Domini</h2>
+                <p>Restituisce l'elenco completo dei domini assegnati.</p>
+                <br>
+                <button type="button" id="btn-domains" class="btn-link">Visualizza Domini</button>
+            </div>
+
+            <div class="card">
+                <h2><span class="badge-get">GET</span> Gold Standard (Doc)</h2>
+                <p>Recupera il Gold Standard per un singolo documento specifico (Testo + HTML).</p>
+                <form id="form-gs-doc">
+                    <input type="text" name="doc_id" placeholder="ID o URL del documento" required>
+                    <button type="submit">Cerca GS</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h2><span class="badge-get">GET</span> Full Gold Standard</h2>
+                <p>Restituisce l'intero dataset Gold Standard associato a un dominio.</p>
+                <form id="form-gs-full">
+                    <input type="text" name="domain" placeholder="Nome del dominio (es. en.wikipedia.org)" required>
+                    <button type="submit">Scarica Full GS</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h2><span class="badge-post">POST</span> Evaluate</h2>
+                <p>Confronta i risultati del parsing con il Gold Standard.</p>
+                <form id="form-evaluate">
+                    <textarea name="parsed_text" placeholder="Testo Parsato (Risultato)" required style="min-height: 50px;"></textarea>
+                    <textarea name="gold_text" placeholder="Testo Gold Standard (Corretto)" required style="min-height: 50px;"></textarea>
+                    <button type="submit" style="background-color: #16a34a;">Calcola Metriche</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h2><span class="badge-get">GET</span> Full GS Eval</h2>
+                <p>Esegue la valutazione completa sull'intero dominio.</p>
+                <form id="form-eval-full">
+                    <input type="text" name="domain" placeholder="Nome del dominio" required>
+                    <button type="submit">Esegui Valutazione Globale</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="container" id="result-view">
+        <div class="header">
+            <div>
+                <button onclick="showDashboard()" class="btn-back">← Torna alla Dashboard</button>
+                <h1 style="margin: 10px 0 0 0;" id="result-title">Risultato</h1>
+            </div>
+            <div class="badge" id="result-badge">Esonero 1</div>
+        </div>
+        <div id="result-content"></div>
+    </div>
+
+    <script>
+        const dashboardView = document.getElementById('dashboard-view');
+        const resultView = document.getElementById('result-view');
+        const resultContent = document.getElementById('result-content');
+        const resultTitle = document.getElementById('result-title');
+        const loader = document.getElementById('main-loader');
+        const grid = document.getElementById('dashboard-grid');
+
+        function showDashboard() {
+            resultView.style.display = 'none';
+            dashboardView.style.display = 'block';
+            resultContent.innerHTML = ''; 
+        }
+
+        function showResult(title, htmlContent) {
+            dashboardView.style.display = 'none';
+            resultTitle.innerText = title;
+            resultContent.innerHTML = htmlContent;
+            window.scrollTo(0,0);
+            resultView.style.display = 'block';
+        }
+
+        function toggleLoading(isLoading) {
+            grid.style.display = isLoading ? 'none' : 'grid';
+            loader.style.display = isLoading ? 'block' : 'none';
+        }
+        
+        function escapeHTML(str) {
+            if (!str) return "";
+            return String(str)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        function extractTextFromData(data) {
+            if (typeof data === 'string') return data;
+            if (data.gold_text) return data.gold_text;
+            if (data.text) return data.text;
+            if (data.content) return data.content;
+            if (data.parsed_text) return data.parsed_text;
+            return JSON.stringify(data, null, 2);
+        }
+
+        function extractHTMLFromData(data) {
+            if (data.html) return data.html;
+            if (data.html_content) return data.html_content;
+            if (data.html_text) return data.html_text;
+            if (data.raw_html) return data.raw_html;
+            return "Nessun codice HTML trovato nel dizionario JSON di ritorno.";
+        }
+
+        function renderDualBoxHTML(data, sourceUrl, boxTitle, headerBgColor, headerTextColor) {
+            const text = extractTextFromData(data);
+            const htmlCode = extractHTMLFromData(data);
+            const title = data.title || "N/A";
+            const domain = data.domain || "N/A";
+
+            return `
+                <div class="metadata-card">
+                    <div class="meta-item"><strong>Titolo</strong><span>${title}</span></div>
+                    <div class="meta-item"><strong>Dominio</strong><span>${domain}</span></div>
+                    <div class="meta-item" style="grid-column: span 2;">
+                        <strong>URL Sorgente / Parametro</strong>
+                        <span>${sourceUrl}</span>
+                    </div>
+                </div>
+                
+                <div class="box" style="margin-bottom: 20px;">
+                    <div class="box-header" style="background: ${headerBgColor}; color: ${headerTextColor};">${boxTitle}</div>
+                    <div class="content-area">${escapeHTML(text)}</div>
+                </div>
+
+                <div class="box">
+                    <div class="box-header" style="background: #1e293b; color: white;">Codice HTML Originale</div>
+                    <div class="content-area" style="background: #0f172a; color: #e2e8f0; font-family: monospace;">
+                        <pre style="margin: 0;">${escapeHTML(htmlCode)}</pre>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderFullGoldStandardHTML(data, domainName) {
+            let docs = Array.isArray(data) ? data : (data.documents || data.data || data.gold_standards || []);
+            if (docs.length === 0) return renderGenericJSON(data);
+
+            let html = `<p style="margin-bottom: 20px;">Trovati <strong>${docs.length}</strong> documenti nel dominio <strong>${domainName}</strong>.</p><ul class="domain-list">`;
+            docs.forEach((doc, idx) => {
+                const url = doc.url || doc.id || doc.doc_id || `Documento #${idx + 1}`;
+                const text = extractTextFromData(doc);
+                const snippet = escapeHTML(text.substring(0, 250) + (text.length > 250 ? '...' : ''));
+                html += `<li class="domain-item"><span class="domain-name">${url}</span><span class="domain-snippet">${snippet}</span></li>`;
+            });
+            return html + `</ul>`;
+        }
+
+        function renderDomainsHTML(data) {
+            let domains = Array.isArray(data) ? data : (data.domains || []);
+            if (domains.length === 0) return `<ul class="domain-list"><li class="empty-state">Nessun dominio trovato.</li></ul>`;
+            return `<ul class="domain-list">${domains.map(d => `<li class="domain-item"><span class="domain-name" style="color: var(--text-main);">${d}</span></li>`).join('')}</ul>`;
+        }
+
+        function renderGenericJSON(data) {
+            return `<div class="box"><div class="box-header">Risultato (JSON)</div><div class="content-area" style="padding: 0; background: #1e293b;"><pre class="json-viewer">${escapeHTML(JSON.stringify(data, null, 4))}</pre></div></div>`;
+        }
+
+        async function fetchAPI(url, options = {}) {
+            const response = await fetch(url, options);
+            const data = await response.json().catch(() => ({})); 
+            if (!response.ok) throw new Error(data.detail || data.error || `Errore HTTP: ${response.status}`);
+            return data;
+        }
+
+        document.getElementById('form-parse-get').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const url = e.target.url.value;
+            toggleLoading(true);
+            try {
+                const data = await fetchAPI(`/parse?url=${encodeURIComponent(url)}`);
+                showResult("Analisi Documento", renderDualBoxHTML(data, url, "Testo Estratto (Pulito)", "#dbeafe", "#1e40af"));
+            } catch(err) { alert("Errore dal Server: " + err.message); } finally { toggleLoading(false); }
+        });
+
+        document.getElementById('form-parse-post').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            toggleLoading(true);
+            try {
+                const response = await fetch('/parse', { method: 'POST', body: formData });
+                const data = await response.json();
+                if(!response.ok) throw new Error(data.detail || "Errore sconosciuto");
+                if (!data.html && !data.html_content) data.html = formData.get('html_text');
+                showResult("Analisi da HTML Manuale", renderDualBoxHTML(data, formData.get('url'), "Testo Estratto da HTML", "#dbeafe", "#1e40af"));
+            } catch(err) { alert("Errore: " + err.message); } finally { toggleLoading(false); }
+        });
+
+        document.getElementById('btn-domains').addEventListener('click', async () => {
+            toggleLoading(true);
+            try {
+                const data = await fetchAPI('/domains');
+                showResult("Domini Assegnati", renderDomainsHTML(data));
+            } catch(err) { alert("Errore: " + err.message); } finally { toggleLoading(false); }
+        });
+
+        document.getElementById('form-gs-doc').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const doc_id = e.target.doc_id.value; 
+            toggleLoading(true);
+            try {
+                const data = await fetchAPI(`/gold_standard?url=${encodeURIComponent(doc_id)}`);
+                showResult("Gold Standard Documento", renderDualBoxHTML(data, doc_id, "Testo Corretto (Gold Standard)", "#dcfce7", "#166534"));
+            } catch(err) { alert("Errore dal Server: " + err.message); } finally { toggleLoading(false); }
+        });
+
+        document.getElementById('form-gs-full').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const domain = e.target.domain.value;
+            toggleLoading(true);
+            try {
+                const data = await fetchAPI(`/full_gold_standard?domain=${encodeURIComponent(domain)}`);
+                showResult(`Dataset Completo: ${domain}`, renderFullGoldStandardHTML(data, domain));
+            } catch(err) { alert("Errore dal Server: " + err.message); } finally { toggleLoading(false); }
+        });
+
+        document.getElementById('form-evaluate').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const payload = { parsed_text: e.target.parsed_text.value, gold_text: e.target.gold_text.value };
+            toggleLoading(true);
+            try {
+                const data = await fetchAPI('/evaluate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                showResult("Risultato Valutazione", renderGenericJSON(data));
+            } catch(err) { alert("Errore: " + err.message); } finally { toggleLoading(false); }
+        });
+
+        document.getElementById('form-eval-full').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const domain = e.target.domain.value;
+            toggleLoading(true);
+            try {
+                const data = await fetchAPI(`/full_gs_eval?domain=${encodeURIComponent(domain)}`);
+                showResult(`Valutazione Globale: ${domain}`, renderGenericJSON(data));
+            } catch(err) { alert("Errore dal Server: " + err.message); } finally { toggleLoading(false); }
+        });
+
+    </script>
+</body>
+</html>

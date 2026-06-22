@@ -1,0 +1,12 @@
+crawl4ai
+requests
+pydantic
+fastapi
+uvicorn
+beautifulsoup4
+readability-lxml
+requests
+markdown
+ollama  
+mariadb
+python-multipart
