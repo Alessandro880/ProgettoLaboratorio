@@ -153,7 +153,13 @@ class DatiInput(BaseModel):
     parsed_text: str
     gold_text: str
 
+class WebResourceInput(BaseModel):
+    url: str
+    html_text: str
 
+class GoldInput(BaseModel):
+    url: str
+    gold_text: str
 
 class JudgeRespsonse(BaseModel):
     model:str
@@ -214,7 +220,7 @@ async def parser_page(url: str) -> dict:
         url_search = "https://" + url_search
     
     pattern = r"https?://((?:www\.)?[^/]+)"
-    match = re.search(pattern, url)
+    match = re.search(pattern, url_search)
     if not match:
         raise HTTPException(status_code=400, detail="URL non valido")
     domain = match.group(1) 
@@ -457,34 +463,38 @@ def mostra_domini(request: Request):
 @app.get("/gold_standard")
 def mostra_gold_standard(url: str):
     try:
-            conn = mariadb.connect(
-                host=db_host,
-                port=db_port,
-                user=db_user,
-                password=db_password,
-                database=db_name
-            )
+        conn = mariadb.connect(
+            host=db_host, port=db_port, user=db_user,
+            password=db_password, database=db_name
+        )
     except mariadb.Error as e:
         raise HTTPException(status_code=500, detail=f"Connessione al DB fallita: {e}")
 
     try:
-
-        query = "SELECT w.url, w.domain, w.title, w.html_text, j.gold_text FROM web_resources as w join gold_standard as j on w.url=j.url WHERE w.url =?"
+        #pattern = r"https?://((?:www\.)?[^/]+)"
+        pattern = r"^(?:https?://)?(?:www\.)?([^/]+)"
+        match = re.search(pattern, url)
+        if not match:
+            raise HTTPException(status_code=418, detail="URL non valido")
+        
+        query = "SELECT w.domain, w.title, w.html_text, j.gold_text FROM web_resources as w LEFT JOIN gold_standard as j on w.url=j.url WHERE w.url =?"
             
         risultato = execute_query(conn, query, (url,))
+        
+       
+            
         return {
-            "url":risultato[0][0],
-            "domain":risultato[0][1],
-            "title":risultato[0][2],
-            "html_text":risultato[0][3],
-            "gold_text":risultato[0][4]
+            "url": url,
+            "domain": risultato[0][0] or "",
+            "title": risultato[0][1] or "",
+            "html_text": risultato[0][2] or "",
+            "gold_text": risultato[0][3] or ""
         }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Errore durante l'interrogazione: {e}")
+        
+    except HTTPException:
+        raise
     finally:
-            conn.close()
-
-
+        conn.close()
 
 
 """
@@ -606,7 +616,7 @@ def full_gs_eval(domain: str):
 
 
 @app.post("/evaluate_judge")
-def evaluate_judge(request: Request, dati: DatiInput):
+def evaluate_judge(dati: DatiInput):
     # 1. Pulisci il testo
     parsed_pulito = rimuovi_markdown(dati.parsed_text)
     gold_pulito = rimuovi_markdown(dati.gold_text)
@@ -619,9 +629,9 @@ def evaluate_judge(request: Request, dati: DatiInput):
     - Rispondi ESCLUSIVAMENTE in formato JSON valido.
     - Non aggiungere testo prima o dopo il JSON.
     - Il JSON deve avere esattamente queste tre chiavi:
-      1. "modello_usato": scrivi "{MODEL}"
-      2. "score": un numero intero da 0 a 5 (0 = completamente diverse, 5 = identiche)
-      3. "feedback": un riassunto delle differenze ESTREMAMENTE conciso (massimo 10-15 parole) in italiano.
+      1. "model_name": scrivi "{MODEL}"
+      2. "judge_score": un numero intero da 0 a 5 (0 = completamente diverse, 5 = identiche)
+      3. "judge_feedback": un riassunto delle differenze ESTREMAMENTE conciso (massimo 10-15 parole) in italiano.
 
     --- INIZIO STRINGA 1 ---
     {parsed_pulito[:len(parsed_pulito)//2]}
@@ -669,7 +679,8 @@ def gold_standard_urls(request: Request, domain:str ):
             for riga in risultati_grezzi
         ]
         
-        if(len(lista_urls)==0): return {"Dominio non supportato!"}
+        if(len(lista_urls)==0): 
+            raise HTTPException(status_code=400, detail=f"Dominio non supportato!")
 
         return {
             "gold_standard_urls": lista_urls
@@ -683,16 +694,17 @@ def gold_standard_urls(request: Request, domain:str ):
 
 
 @app.post("/add_web_resource")
-async def add_web_resource(url: str = Form(...), html_text: str = Form(...)):
-    db_host = os.getenv("DB_HOST", "mariadb")
-    db_port = int(os.getenv("DB_PORT", 3306))
-    db_user = os.getenv("DB_USER", "user")
-    db_password = os.getenv("DB_PASSWORD", "sonoio")
-    db_name = os.getenv("DB_NAME", "project_db")
-
-    page = await parser_page(url)
-
+async def add_web_resource(risorsa: WebResourceInput):
+    
     try:
+            pattern_dominio = r"^(?:https?://)?(?:www\.)?([^/]+)"
+            match = re.search(pattern_dominio, risorsa.url)
+            domain = match.group(1) if match else "sconosciuto"
+
+    # 2. Estraiamo il titolo direttamente dall'HTML fornito dal test
+    # Cerca il testo contenuto tra i tag <title> e </title>
+            title_match = re.search(r"<title>(.*?)</title>", risorsa.html_text, re.IGNORECASE | re.DOTALL)
+            title = title_match.group(1).strip() if title_match else "Titolo mancante"
             conn = mariadb.connect(
                 host=db_host,
                 port=db_port,
@@ -700,77 +712,55 @@ async def add_web_resource(url: str = Form(...), html_text: str = Form(...)):
                 password=db_password,
                 database=db_name
             )
-    except mariadb.Error as e:
-        raise HTTPException(status_code=500, detail=f"Connessione al DB fallita: {e}")
 
-    try:
-
-        query = "INSERT INTO web_resources (url, domain, title, html_text) values (?, ?, ?, ?)"
+            query = "INSERT INTO web_resources (url, domain, title, html_text) values (?, ?, ?, ?)"
             
-        risultato = execute_query(conn, query, (url, page["domain"],  page["title"],html_text))
-        return {"status":"ok"}
+            execute_query(conn, query, (risorsa.url, domain,  title, risorsa.html_text))
+            return {"status":"ok"}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Errore durante l'interrogazione: {e}")
+        return {"status":"error"}
     finally:
-            conn.close()
+        conn.close()
 
 @app.post("/delete_web_resource")
 async def delete_web_resource(url:str):
-    db_host = os.getenv("DB_HOST", "mariadb")
-    db_port = int(os.getenv("DB_PORT", 3306))
-    db_user = os.getenv("DB_USER", "user")
-    db_password = os.getenv("DB_PASSWORD", "sonoio")
-    db_name = os.getenv("DB_NAME", "project_db")
 
     try:
-            conn = mariadb.connect(
+        conn = mariadb.connect(
                 host=db_host,
                 port=db_port,
                 user=db_user,
                 password=db_password,
                 database=db_name
-            )
-    except mariadb.Error as e:
-        raise HTTPException(status_code=500, detail=f"Connessione al DB fallita: {e}")
-
-    try:
+        )
 
         query = "DELETE FROM web_resources WHERE url =?"
             
-        risultato = execute_query(conn, query, (url, ))
+        execute_query(conn, query, (url, ))
         return {"status":"ok"}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Errore durante l'interrogazione: {e}")
+        return {"status":"error"}
     finally:
             conn.close()
 
 @app.post("/add_gold_standard")
-def add_gold_standard(url:str=Form(...), gold_text:str=Form(...)):
-    db_host = os.getenv("DB_HOST", "mariadb")
-    db_port = int(os.getenv("DB_PORT", 3306))
-    db_user = os.getenv("DB_USER", "user")
-    db_password = os.getenv("DB_PASSWORD", "sonoio")
-    db_name = os.getenv("DB_NAME", "project_db")
+def add_gold_standard(dati : GoldInput):
 
     try:
-            conn = mariadb.connect(
+        conn = mariadb.connect(
                 host=db_host,
                 port=db_port,
                 user=db_user,
                 password=db_password,
                 database=db_name
             )
-    except mariadb.Error as e:
-        raise HTTPException(status_code=500, detail=f"Connessione al DB fallita: {e}")
-
-    try:
-
+    
         query = "INSERT INTO gold_standard (url, gold_text) values (?, ?)"
             
-        risultato = execute_query(conn, query, (url, gold_text))
+        execute_query(conn, query, (dati.url, dati.gold_text))
         return {"status":"ok"}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Errore durante l'interrogazione: {e}")
+        return {"status" : "error"}
     finally:
             conn.close()
 
