@@ -99,48 +99,65 @@ def clean_wikipedia_text(html_content):
 
 # Parser OLYMPICS
 
-
 # def clean_olympics_text(html_content):
 #     soup = BeautifulSoup(html_content, 'html.parser')
 #     titolo_tag = soup.find('h1')
 #     titolo = titolo_tag.get_text(separator=' ', strip=True) if titolo_tag else "Titolo non trovato"
 
-#     # Rimuoviamo tag inutili alla lettura
+#     # 1. Rimuoviamo tag inutili alla lettura
 #     for tag in soup.find_all(['nav', 'header', 'footer', 'aside', 'script', 'style', 'svg', 'button', 'form', 'iframe', 'picture', 'video']):
 #         tag.decompose()
 
-#     # --- MODIFICA 1: Rilassiamo la rimozione dei link ---
-#     # Aumentiamo la soglia o rimuoviamo del tutto questa logica. 
-#     # Molti framework wrappano intere sezioni in tag <a>.
+#     # 2. Gestione link lunghi (Rilassata)
 #     for a in soup.find_all('a'):
 #         if a.attrs is None: continue
-#         if len(a.get_text(strip=True)) > 80: # Aumentato a 80 per sicurezza, o eliminalo
+#         if len(a.get_text(strip=True)) > 80: 
 #             a.decompose()
 
-#     # --- MODIFICA 2: Aggiungiamo i container tipici delle SPA ---
-#     # olympics.com usa spesso <div id="__next"> al posto di <main>
+#     # 3. Individuazione dell'area principale
 #     main_area = soup.find('main') or soup.find(id='__next') or soup.find(id='root') or soup.find('article') or soup.find('body') or soup
-#     testo_grezzo = main_area.get_text(separator='\n', strip=True)
     
+#     # NOVITÀ: Evitiamo che testi in span o sup (es. 73rd) vengano spezzati dal newline
+#     for inline in main_area.find_all(['span', 'sup', 'sub', 'b', 'i', 'strong', 'em']):
+#         inline.unwrap()
+
+#     testo_grezzo = main_area.get_text(separator='\n', strip=True)
 #     linee = testo_grezzo.split('\n')
 #     testo_valido = []
 
-#     parole_spazzatura = [
+#     # 4. Filtri testo ampliati
+#     parole_spazzatura = {
 #         'condividi', 'share', 'leggi di più', 'read more', 'newsletter', 
 #         'copyright', 'all rights reserved', 'advertisement', 'pubblicità',
 #         'cookie', 'accetta', 'rifiuta', 'guarda anche', 
 #         'scopri e rivivi', 'olympic channel', 'film e serie', 'best of', 
-#         'originali', 'in associazione con'
-#     ]
+#         'originali', 'in associazione con', 'privacy policy', 'terms of service',
+#         'sitemap', 'contact centre', 'about us', 'shop', 'museum', 
+#         'international olympic committee', 'explore', 'topics', 'podcast',
+#         'corporate', 'original series', 'live events', 'tv channel',
+#         'all olympic games', 'replays & highlights', 'results & medals',
+#         'you may like', 'featured', 'quick update: we have updated', 'find it here',
+#         'olympic games milano cortina 2026'
+#     }
+    
+#     # NOVITÀ: Voci di menu singole da eliminare solo in caso di match esatto
+#     menu_esatti = {'athletes', 'sports', 'more', 'news'}
 
 #     for linea in linee:
 #         linea = linea.strip()
+#         linea_lower = linea.lower()
         
-#         if not linea or linea.lower() == titolo.lower() or linea in testo_valido:
+#         if not linea or linea_lower == titolo.lower() or linea in testo_valido:
 #             continue
 #         if '|' in linea and len(linea) < 50:
 #             continue
-#         if any(p in linea.lower() for p in parole_spazzatura):
+            
+#         # Filtro parziale
+#         if any(p in linea_lower for p in parole_spazzatura):
+#             continue
+            
+#         # Filtro esatto
+#         if linea_lower in menu_esatti:
 #             continue
 
 #         lunghezza = len(linea)
@@ -151,101 +168,76 @@ def clean_wikipedia_text(html_content):
 #             testo_valido.append(linea)
 #             continue
 
-#         # --- MODIFICA 3: Salvare i dati brevi (numeri, statistiche, medaglie) ---
-#         # Se una linea è corta (es. "Età", "29", "ITA", "Oro") dobbiamo tenerla, 
-#         # altrimenti perdiamo i dati biometrici e le statistiche!
+#         # Salvataggio dati brevi e statistici
 #         if lunghezza > 20 and numero_parole >= 2:
 #             testo_valido.append(linea)
 #         elif 4 <= lunghezza <= 60:
 #             testo_valido.append(linea)
 #         elif 0 < lunghezza < 4 and linea.isalnum(): 
-#             # Questa condizione salva esplicitamente numeri (es. 1, 25, 1998) 
-#             # e piccole sigle (es. ITA, Oro)
 #             testo_valido.append(linea)
 
-#     # Assumendo che tu abbia implementato altrove formatta_in_markdown
 #     return formatta_in_markdown(titolo, "\n\n".join(testo_valido))
- 
+
+
 def clean_olympics_text(html_content):
     soup = BeautifulSoup(html_content, 'html.parser')
     titolo_tag = soup.find('h1')
     titolo = titolo_tag.get_text(separator=' ', strip=True) if titolo_tag else "Titolo non trovato"
 
-    # 1. Rimuoviamo tag inutili alla lettura
+    # 1. Rimuoviamo solo i blocchi palesemente inutili
     for tag in soup.find_all(['nav', 'header', 'footer', 'aside', 'script', 'style', 'svg', 'button', 'form', 'iframe', 'picture', 'video']):
         tag.decompose()
 
-    # 2. Gestione link lunghi (Rilassata)
-    for a in soup.find_all('a'):
-        if a.attrs is None: continue
-        if len(a.get_text(strip=True)) > 80: 
-            a.decompose()
-
-    # 3. Individuazione dell'area principale
-    main_area = soup.find('main') or soup.find(id='__next') or soup.find(id='root') or soup.find('article') or soup.find('body') or soup
+    # 2. Troviamo l'area principale (metodo infallibile)
+    main_area = soup.find('main') or soup.find(id='__next') or soup.find('article') or soup.find('body') or soup
     
-    # NOVITÀ: Evitiamo che testi in span o sup (es. 73rd) vengano spezzati dal newline
-    for inline in main_area.find_all(['span', 'sup', 'sub', 'b', 'i', 'strong', 'em']):
+    # 3. Rimuoviamo i tag inline (span, a, strong) per evitare che get_text spezzi le frasi a metà
+    for inline in main_area.find_all(['span', 'sup', 'sub', 'b', 'i', 'strong', 'em', 'a']):
         inline.unwrap()
 
+    # Estraiamo il testo grezzo e lo dividiamo in linee
     testo_grezzo = main_area.get_text(separator='\n', strip=True)
     linee = testo_grezzo.split('\n')
-    testo_valido = []
 
-    # 4. Filtri testo ampliati
+    # Blacklist ottimizzata
     parole_spazzatura = {
         'condividi', 'share', 'leggi di più', 'read more', 'newsletter', 
         'copyright', 'all rights reserved', 'advertisement', 'pubblicità',
-        'cookie', 'accetta', 'rifiuta', 'guarda anche', 
-        'scopri e rivivi', 'olympic channel', 'film e serie', 'best of', 
-        'originali', 'in associazione con', 'privacy policy', 'terms of service',
-        'sitemap', 'contact centre', 'about us', 'shop', 'museum', 
-        'international olympic committee', 'explore', 'topics', 'podcast',
-        'corporate', 'original series', 'live events', 'tv channel',
-        'all olympic games', 'replays & highlights', 'results & medals',
-        'you may like', 'featured', 'quick update: we have updated', 'find it here',
-        'olympic games milano cortina 2026'
+        'cookie', 'accetta', 'rifiuta', 'guarda anche', 'privacy policy', 
+        'terms of service', 'olympic channel', 'best of', 'originali',
+        'podcast', 'live events', 'replays & highlights', 'results & medals'
     }
-    
-    # NOVITÀ: Voci di menu singole da eliminare solo in caso di match esatto
-    menu_esatti = {'athletes', 'sports', 'more', 'news'}
+
+    testo_valido = []
 
     for linea in linee:
         linea = linea.strip()
         linea_lower = linea.lower()
         
+        # Saltiamo le righe vuote o uguali al titolo
         if not linea or linea_lower == titolo.lower() or linea in testo_valido:
             continue
-        if '|' in linea and len(linea) < 50:
-            continue
             
-        # Filtro parziale
+        # Saltiamo le righe che contengono parole spazzatura
         if any(p in linea_lower for p in parole_spazzatura):
             continue
-            
-        # Filtro esatto
-        if linea_lower in menu_esatti:
-            continue
 
-        lunghezza = len(linea)
         numero_parole = len(linea.split())
+        lunghezza = len(linea)
 
-        # Le stringhe con i ":" le teniamo se hanno un minimo di senso
-        if ":" in linea and lunghezza > 3:
+        # 4. IL FILTRO INTELLIGENTE (La vera differenza rispetto allo 0.560)
+        # Una vera frase o paragrafo ha quasi sempre 4 o più parole.
+        if numero_parole >= 4:
             testo_valido.append(linea)
-            continue
-
-        # Salvataggio dati brevi e statistici
-        if lunghezza > 20 and numero_parole >= 2:
-            testo_valido.append(linea)
-        elif 4 <= lunghezza <= 60:
-            testo_valido.append(linea)
-        elif 0 < lunghezza < 4 and linea.isalnum(): 
+            
+        # Se ha meno parole (es. 2 o 3), la teniamo SOLO se ha una lunghezza decente 
+        # e non contiene simboli tipici dei menu (| o >)
+        elif 15 <= lunghezza <= 60 and not any(c in linea for c in ['|', '>', '<', '{', '}']):
             testo_valido.append(linea)
 
-    return formatta_in_markdown(titolo, "\n\n".join(testo_valido))
-
-
+    # Formattiamo e restituiamo
+    testo_finale = "\n\n".join(testo_valido)
+    return formatta_in_markdown(titolo, testo_finale)
 # Parser GOVERNO
 def clean_governo_text(html_content):
     soup = BeautifulSoup(html_content, 'html.parser')

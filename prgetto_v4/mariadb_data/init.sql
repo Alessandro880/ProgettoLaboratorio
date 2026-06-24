@@ -17,7 +17,3 @@ CREATE TABLE IF NOT EXISTS gold_standard(
     FOREIGN KEY (url) REFERENCES web_resources(url) ON DELETE CASCADE
 );
 
-
-CREATE TABLE IF NOT EXISTS valuation(
-    
-)
