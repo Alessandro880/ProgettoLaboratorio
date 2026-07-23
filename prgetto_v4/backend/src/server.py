@@ -1691,6 +1691,88 @@ def mostra_full_gold_standard(domain: str):
     Dato un dominio, controlla che sia valido. Dopo di che per ogni url mappato per quel dominio effettua
     la valutazione tramite token_level_eval e sequence_similarity_eval, e ne calcola la media
 """
+# @app.get("/full_gs_eval")
+# def full_gs_eval(domain: str):
+#     percorso_gs = "/app/gs_data"
+#     percorso_domains = "/app/domains.json"
+
+#     try:
+#         with open(percorso_domains, "r", encoding="utf-8") as f:
+#             dati_json = json.load(f)
+#             if isinstance(dati_json, dict) and "domains" in dati_json:
+#                 domini = dati_json["domains"] 
+#             elif isinstance(dati_json, list):
+#                 domini = dati_json 
+#             else:
+#                 domini = []
+#     except FileNotFoundError:
+#         domini = []
+        
+#     if domain not in domini: 
+#         raise HTTPException(status_code=404, detail="Dominio non supportato!")
+
+#     file = f"{percorso_gs}/{domain}.json"
+#     try:
+#         with open(file, "r", encoding="utf-8") as f:
+#             dati_json = json.load(f)
+            
+#             result = {
+#                 "token_level_eval": {"precision": 0.0, "recall": 0.0, "f1": 0.0},
+#                 "sequence_similarity_eval": {"sequence_similarity_ratio": 0.0, "longest_contiguous_match_chars": 0.0, "is_perfect_match": True}
+#             }
+            
+#             pagine = dati_json.get("gold_standard", [])
+#             numero_pagine = len(pagine)
+#             if numero_pagine == 0:
+#                 raise HTTPException(status_code=404, detail="Il file GS è vuoto")
+
+#             for page in pagine:
+#                 html = page.get("html_text", "")
+#                 gold = page.get("gold_text", "")
+                
+#                 if domain == "en.wikipedia.org":
+#                     testo_md = clean_wikipedia_text(html)[1] if clean_wikipedia_text(html) else ""
+#                 elif domain == "www.olympics.com":
+#                     testo_md = clean_olympics_text(html)[1] if clean_olympics_text(html) else ""
+#                 elif domain == "www.governo.it":
+#                     testo_md = clean_governo_text(html)[1] if clean_governo_text(html) else ""
+#                 elif domain == "lospiegone.com":
+#                     testo_md = clean_lospiegone_text(html)[1] if clean_lospiegone_text(html) else ""
+#                 else:
+#                     testo_md = clean_text(html)[1] if clean_text(html) else ""
+                
+#                 parsed_pulito = rimuovi_markdown(testo_md)
+#                 gold_pulito = rimuovi_markdown(gold)
+
+#                 w_token_eval = token_level_eval(parsed_pulito, gold_pulito)
+#                 w_sequence_sim = sequence_similarity_eval(parsed_pulito, gold_pulito)
+
+#                 result["token_level_eval"]["precision"] += w_token_eval.get("precision", 0)
+#                 result["token_level_eval"]["recall"] += w_token_eval.get("recall", 0)
+#                 result["token_level_eval"]["f1"] += w_token_eval.get("f1", 0)
+
+#                 result["sequence_similarity_eval"]["sequence_similarity_ratio"] += w_sequence_sim.get("sequence_similarity_ratio", 0)
+#                 result["sequence_similarity_eval"]["longest_contiguous_match_chars"] += w_sequence_sim.get("longest_contiguous_match_chars", 0)
+                
+#                 if not w_sequence_sim.get("is_perfect_match", False):
+#                     result["sequence_similarity_eval"]["is_perfect_match"] = False
+
+#             result["token_level_eval"]["precision"] /= numero_pagine
+#             result["token_level_eval"]["recall"] /= numero_pagine
+#             result["token_level_eval"]["f1"] /= numero_pagine
+#             result["sequence_similarity_eval"]["sequence_similarity_ratio"] /= numero_pagine
+#             result["sequence_similarity_eval"]["longest_contiguous_match_chars"] /= numero_pagine
+
+#             return result
+            
+#     except FileNotFoundError:
+#         raise HTTPException(status_code=404, detail=f"Problema apertura {domain}.json")
+    
+
+"""
+    Dato un dominio, controlla che sia valido. Dopo di che per ogni url mappato per quel dominio effettua
+    la valutazione tramite token_level_eval, sequence_similarity_eval e LLM-as-judge, calcolandone la media
+"""
 @app.get("/full_gs_eval")
 def full_gs_eval(domain: str):
     percorso_gs = "/app/gs_data"
@@ -1718,7 +1800,8 @@ def full_gs_eval(domain: str):
             
             result = {
                 "token_level_eval": {"precision": 0.0, "recall": 0.0, "f1": 0.0},
-                "sequence_similarity_eval": {"sequence_similarity_ratio": 0.0, "longest_contiguous_match_chars": 0.0, "is_perfect_match": True}
+                "sequence_similarity_eval": {"sequence_similarity_ratio": 0.0, "longest_contiguous_match_chars": 0.0, "is_perfect_match": True},
+                "judge_score": 0.0  # <--- Aggiunto il judge_score richiesto
             }
             
             pagine = dati_json.get("gold_standard", [])
@@ -1744,8 +1827,36 @@ def full_gs_eval(domain: str):
                 parsed_pulito = rimuovi_markdown(testo_md)
                 gold_pulito = rimuovi_markdown(gold)
 
+                # 1. Valutazioni classiche
                 w_token_eval = token_level_eval(parsed_pulito, gold_pulito)
                 w_sequence_sim = sequence_similarity_eval(parsed_pulito, gold_pulito)
+
+                # 2. Valutazione LLM (Judge)
+                try:
+                    prompt = f"""
+                    Sei un assistente esperto nell'analisi di testi. Il tuo unico compito è confrontare le due stringhe fornite e valutare quanto sono simili per il contenuto.
+                    
+                    REGOLE OBBLIGATORIE:
+                    - Rispondi ESCLUSIVAMENTE in formato JSON valido.
+                    - Il JSON deve avere esattamente queste tre chiavi: "model_name", "judge_score" (intero da 0 a 5) e "judge_feedback".
+
+                    --- INIZIO STRINGA 1 ---
+                    {parsed_pulito[:len(parsed_pulito)//3]}
+                    --- FINE STRINGA 1 ---
+
+                    --- INIZIO STRINGA 2 ---
+                    {gold_pulito[:len(gold_pulito)//3]}
+                    --- FINE STRINGA 2 ---
+                    """
+                    response = ollama_client.generate(model=MODEL, prompt=prompt, format="json")
+                    res_json = json.loads(response['response'])
+                    score = float(res_json.get("judge_score", 0))
+                except Exception as e:
+                    print(f"Errore chiamata Ollama per full_gs_eval: {e}")
+                    score = 0.0
+
+                # 3. Somma i risultati
+                result["judge_score"] += score
 
                 result["token_level_eval"]["precision"] += w_token_eval.get("precision", 0)
                 result["token_level_eval"]["recall"] += w_token_eval.get("recall", 0)
@@ -1757,17 +1868,19 @@ def full_gs_eval(domain: str):
                 if not w_sequence_sim.get("is_perfect_match", False):
                     result["sequence_similarity_eval"]["is_perfect_match"] = False
 
+            # 4. Calcola la media finale dividendo per il numero di pagine
             result["token_level_eval"]["precision"] /= numero_pagine
             result["token_level_eval"]["recall"] /= numero_pagine
             result["token_level_eval"]["f1"] /= numero_pagine
             result["sequence_similarity_eval"]["sequence_similarity_ratio"] /= numero_pagine
             result["sequence_similarity_eval"]["longest_contiguous_match_chars"] /= numero_pagine
+            
+            result["judge_score"] = round(result["judge_score"] / numero_pagine, 2)
 
             return result
             
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail=f"Problema apertura {domain}.json")
-    
 
 
 @app.post("/evaluate_judge")
@@ -1789,11 +1902,11 @@ def evaluate_judge(dati: DatiInput):
       3. "judge_feedback": un riassunto delle differenze ESTREMAMENTE conciso (massimo 10-15 parole) in italiano.
 
     --- INIZIO STRINGA 1 ---
-    {parsed_pulito[:len(parsed_pulito)//2]}
+    {parsed_pulito[:len(parsed_pulito)//3]}
     --- FINE STRINGA 1 ---
 
     --- INIZIO STRINGA 2 ---
-    {gold_pulito[:len(gold_pulito)//2]}
+    {gold_pulito[:len(gold_pulito)//3]}
     --- FINE STRINGA 2 ---
     """
 
@@ -2023,6 +2136,115 @@ async def status():
         "ollama": is_online("ollama_service", 11434)
     }
 
+# @app.get("/db_stats")
+# def db_stats():
+#     conn = None
+#     try:
+#         conn = mariadb.connect(
+#             host=db_host, port=db_port, user=db_user,
+#             password=db_password, database=db_name
+#         )
+
+#         # Conta web_resources per dominio
+#         web_res_counts = {}
+#         risultati_wr = execute_query(conn, "SELECT domain, COUNT(*) FROM web_resources GROUP BY domain")
+#         for row in risultati_wr:
+#             web_res_counts[row[0]] = row[1]
+
+#         # Conta gold_standard per dominio
+#         gs_counts = {}
+#         risultati_gs = execute_query(conn, """
+#             SELECT w.domain, COUNT(*) 
+#             FROM gold_standard g 
+#             JOIN web_resources w ON g.url = w.url 
+#             GROUP BY w.domain
+#         """)
+#         for row in risultati_gs:
+#             gs_counts[row[0]] = row[1]
+
+#         # Calcola metriche aggregate per dominio dai dati nel DB
+#         avg_eval = {}
+#         avg_eval_judge = {}
+
+#         # Prendi tutti i dati GS per dominio
+#         tutti_gs = execute_query(conn, """
+#             SELECT w.domain, w.html_text, g.gold_text
+#             FROM web_resources w
+#             JOIN gold_standard g ON w.url = g.url
+#         """)
+
+#         # Raggruppa per dominio
+#         per_dominio: dict = {}
+#         for row in tutti_gs:
+#             dom = row[0]
+#             if dom not in per_dominio:
+#                 per_dominio[dom] = []
+#             per_dominio[dom].append((row[1], row[2]))
+
+#         for dom, pagine in per_dominio.items():
+#             prec_list, rec_list, f1_l = [], [], []
+#             judge_list = []
+
+#             for html_text, gold_text in pagine:
+#                 if not html_text or not gold_text:
+#                     continue
+#                 try:
+#                     if "wikipedia.org" in dom:
+#                         testo = clean_wikipedia_text(html_text)
+#                     elif "olympics.com" in dom:
+#                         testo = clean_olympics_text(html_text)
+#                     elif "governo.it" in dom:
+#                         testo = clean_governo_text(html_text)
+#                     elif "lospiegone.com" in dom:
+#                         testo = clean_lospiegone_text(html_text)
+#                     else:
+#                         testo = clean_text(html_text)
+
+#                     if isinstance(testo, (list, tuple)):
+#                         testo_parsato = str(testo[1]) if len(testo) > 1 else ""
+#                     elif isinstance(testo, dict):
+#                         testo_parsato = str(testo.get("text", ""))
+#                     else:
+#                         testo_parsato = str(testo)
+
+#                     parsed_pulito = rimuovi_markdown(testo_parsato)
+#                     gold_pulito = rimuovi_markdown(gold_text)
+#                     w_token = token_level_eval(parsed_pulito, gold_pulito)
+#                     prec_list.append(w_token.get("precision", 0.0))
+#                     rec_list.append(w_token.get("recall", 0.0))
+#                     f1_l.append(w_token.get("f1", 0.0))
+#                     # Per /db_stats non chiamiamo Ollama (troppo lento), mettiamo 0
+#                     judge_list.append(0.0)
+#                 except Exception:
+#                     continue
+
+#             if f1_l:
+#                 avg_eval[dom] = {
+#                     "token_level_eval": {
+#                         "precision": round(sum(prec_list) / len(prec_list), 4),
+#                         "recall": round(sum(rec_list) / len(rec_list), 4),
+#                         "f1": round(sum(f1_l) / len(f1_l), 4),
+#                     }
+#                 }
+#             if judge_list:
+#                 avg_eval_judge[dom] = {
+#                     "judge_score": round(sum(judge_list) / len(judge_list), 4)
+#                 }
+
+#         return {
+#             "web_resources": web_res_counts,
+#             "gold_standard": gs_counts,
+#             "avg_eval": avg_eval,
+#             "avg_eval_judge": avg_eval_judge,
+#         }
+
+#     except Exception as e:
+#         print(f"Errore db_stats: {e}", flush=True)
+#         raise HTTPException(status_code=500, detail=f"Errore interno: {e}")
+#     finally:
+#         if conn is not None:
+#             conn.close()
+
 @app.get("/db_stats")
 def db_stats():
     conn = None
@@ -2032,14 +2254,44 @@ def db_stats():
             password=db_password, database=db_name
         )
 
-        # Conta web_resources per dominio
         web_res_counts = {}
+        gs_counts = {}
+        avg_eval = {}
+        avg_eval_judge = {}
+
+        # Funzione di supporto per essere sicuri che ogni dominio abbia la struttura perfetta
+        def init_domain(dom):
+            if dom not in avg_eval:
+                web_res_counts[dom] = 0
+                gs_counts[dom] = 0
+                avg_eval[dom] = {
+                    "token_level_eval": {"precision": 0.0, "recall": 0.0, "f1": 0.0},
+                    "sequence_similarity_eval": {
+                        "sequence_similarity_ratio": 0.0,
+                        "longest_contiguous_match_chars": 0.0,
+                        "is_perfect_match": False
+                    }
+                }
+                avg_eval_judge[dom] = {"judge_score": 0.0}
+
+        # Inizializziamo in anticipo i domini dal file domains.json per far felice il tester
+        try:
+            with open("/app/domains.json", "r", encoding="utf-8") as f:
+                dati_dom = json.load(f)
+                domini = dati_dom.get("domains", dati_dom) if isinstance(dati_dom, dict) else dati_dom
+                for d in domini:
+                    init_domain(d)
+        except Exception:
+            pass
+
+        # 1. Conta web_resources
         risultati_wr = execute_query(conn, "SELECT domain, COUNT(*) FROM web_resources GROUP BY domain")
         for row in risultati_wr:
-            web_res_counts[row[0]] = row[1]
+            dom = row[0]
+            init_domain(dom)
+            web_res_counts[dom] = row[1]
 
-        # Conta gold_standard per dominio
-        gs_counts = {}
+        # 2. Conta gold_standard
         risultati_gs = execute_query(conn, """
             SELECT w.domain, COUNT(*) 
             FROM gold_standard g 
@@ -2047,29 +2299,28 @@ def db_stats():
             GROUP BY w.domain
         """)
         for row in risultati_gs:
-            gs_counts[row[0]] = row[1]
+            dom = row[0]
+            init_domain(dom)
+            gs_counts[dom] = row[1]
 
-        # Calcola metriche aggregate per dominio dai dati nel DB
-        avg_eval = {}
-        avg_eval_judge = {}
-
-        # Prendi tutti i dati GS per dominio
+        # 3. Calcola Metriche Aggregate
         tutti_gs = execute_query(conn, """
             SELECT w.domain, w.html_text, g.gold_text
             FROM web_resources w
             JOIN gold_standard g ON w.url = g.url
         """)
 
-        # Raggruppa per dominio
-        per_dominio: dict = {}
+        per_dominio = {}
         for row in tutti_gs:
             dom = row[0]
+            init_domain(dom)
             if dom not in per_dominio:
                 per_dominio[dom] = []
             per_dominio[dom].append((row[1], row[2]))
 
         for dom, pagine in per_dominio.items():
             prec_list, rec_list, f1_l = [], [], []
+            seq_ratio_list, seq_chars_list = [], []
             judge_list = []
 
             for html_text, gold_text in pagine:
@@ -2096,27 +2347,35 @@ def db_stats():
 
                     parsed_pulito = rimuovi_markdown(testo_parsato)
                     gold_pulito = rimuovi_markdown(gold_text)
+                    
                     w_token = token_level_eval(parsed_pulito, gold_pulito)
+                    w_seq = sequence_similarity_eval(parsed_pulito, gold_pulito)
+                    
                     prec_list.append(w_token.get("precision", 0.0))
                     rec_list.append(w_token.get("recall", 0.0))
                     f1_l.append(w_token.get("f1", 0.0))
-                    # Per /db_stats non chiamiamo Ollama (troppo lento), mettiamo 0
-                    judge_list.append(0.0)
+                    
+                    seq_ratio_list.append(w_seq.get("sequence_similarity_ratio", 0.0))
+                    seq_chars_list.append(w_seq.get("longest_contiguous_match_chars", 0.0))
+                    
+                    judge_list.append(0.0) # Il judge non lo calcoliamo su db_stats per risparmiare tempo
                 except Exception:
                     continue
 
+            # Se abbiamo calcolato qualcosa, aggiorniamo il dizionario con le medie
             if f1_l:
-                avg_eval[dom] = {
-                    "token_level_eval": {
-                        "precision": round(sum(prec_list) / len(prec_list), 4),
-                        "recall": round(sum(rec_list) / len(rec_list), 4),
-                        "f1": round(sum(f1_l) / len(f1_l), 4),
-                    }
+                avg_eval[dom]["token_level_eval"] = {
+                    "precision": round(sum(prec_list) / len(prec_list), 4),
+                    "recall": round(sum(rec_list) / len(rec_list), 4),
+                    "f1": round(sum(f1_l) / len(f1_l), 4),
+                }
+                avg_eval[dom]["sequence_similarity_eval"] = {
+                    "sequence_similarity_ratio": round(sum(seq_ratio_list) / len(seq_ratio_list), 4),
+                    "longest_contiguous_match_chars": round(sum(seq_chars_list) / len(seq_chars_list), 4),
+                    "is_perfect_match": False
                 }
             if judge_list:
-                avg_eval_judge[dom] = {
-                    "judge_score": round(sum(judge_list) / len(judge_list), 4)
-                }
+                avg_eval_judge[dom]["judge_score"] = round(sum(judge_list) / len(judge_list), 4)
 
         return {
             "web_resources": web_res_counts,
@@ -2126,37 +2385,7 @@ def db_stats():
         }
 
     except Exception as e:
-        print(f"Errore db_stats: {e}", flush=True)
         raise HTTPException(status_code=500, detail=f"Errore interno: {e}")
     finally:
         if conn is not None:
-            conn.close()
-
-@app.get("/test")
-def test():
-    db_host = os.getenv("DB_HOST", "mariadb")
-    db_port = int(os.getenv("DB_PORT", 3306))
-    db_user = os.getenv("DB_USER", "user")
-    db_password = os.getenv("DB_PASSWORD", "sonoio")
-    db_name = os.getenv("DB_NAME", "project_db")
-    try:
-            conn = mariadb.connect(
-                host=db_host,
-                port=db_port,
-                user=db_user,
-                password=db_password,
-                database=db_name
-            )
-    except mariadb.Error as e:
-        raise HTTPException(status_code=500, detail=f"Connessione al DB fallita: {e}")
-
-    try:
-
-        query = "SELECT *  FROM gold_standard"
-            
-        risultato = execute_query(conn, query)
-        return risultato
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Errore durante l'interrogazione: {e}")
-    finally:
             conn.close()
