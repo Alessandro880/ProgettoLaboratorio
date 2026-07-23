@@ -1,0 +1,181 @@
+{
+  "identifier": "2063329",
+  "timestamp": "20260723-14:25",
+  "mode": "public",
+  "domains": [
+    "en.wikipedia.org",
+    "www.olympics.com",
+    "www.governo.it",
+    "lospiegone.com"
+  ],
+  "components": {
+    "backend": "ok",
+    "database": "ok",
+    "ollama": "ok",
+    "frontend": "ok"
+  },
+  "overall_score": 0.6871,
+  "all_pass": false,
+  "passed": 18,
+  "total": 26,
+  "gs_calibration": {
+    "public_avg": 0.5,
+    "public_min": 0.0
+  },
+  "tests": {
+    "GET /status — componenti": {
+      "passed": true,
+      "score": 1.0,
+      "details": "backend=ok, database=ok, ollama=ok"
+    },
+    "Frontend :8004 — raggiungibile": {
+      "passed": true,
+      "score": 1.0,
+      "details": "OK (text/html; charset=utf-8)"
+    },
+    "GET /domains — struttura risposta": {
+      "passed": true,
+      "score": 1.0,
+      "details": "4 domini"
+    },
+    "GET /domains — domini nella lista valida": {
+      "passed": true,
+      "score": 1.0,
+      "details": "Tutti validi"
+    },
+    "GET /db_schema — tabelle obbligatorie": {
+      "passed": true,
+      "score": 1.0,
+      "details": "web_resources e gold_standard presenti"
+    },
+    "GET /db_stats — struttura risposta": {
+      "passed": false,
+      "score": 0.0,
+      "details": "HTTP 404"
+    },
+    "POST /evaluate — struttura risposta": {
+      "passed": true,
+      "score": 1.0,
+      "details": "Struttura corretta"
+    },
+    "POST /evaluate — correttezza metriche (public set)": {
+      "passed": true,
+      "score": 1.0,
+      "details": "tutti i 200 corretti"
+    },
+    "POST /evaluate — gestione input vuoti": {
+      "passed": true,
+      "score": 1.0,
+      "details": "OK"
+    },
+    "POST /evaluate_judge — struttura risposta": {
+      "passed": true,
+      "score": 1.0,
+      "details": "model=llama3.2:3b, score=5"
+    },
+    "GET /gold_standard — struttura risposta": {
+      "passed": false,
+      "score": 0.0,
+      "details": "Nessun URL nel gold standard"
+    },
+    "GET /gold_standard_urls — struttura risposta": {
+      "passed": false,
+      "score": 0.0,
+      "details": "HTTP 500"
+    },
+    "POST /add_web_resource — struttura status": {
+      "passed": true,
+      "score": 1.0,
+      "details": "status=error"
+    },
+    "POST /add_gold_standard — struttura status": {
+      "passed": true,
+      "score": 1.0,
+      "details": "status=error"
+    },
+    "DELETE /web_resource — struttura status": {
+      "passed": true,
+      "score": 1.0,
+      "details": "status=error"
+    },
+    "DELETE /gold_standard — struttura status": {
+      "passed": true,
+      "score": 1.0,
+      "details": "status=error"
+    },
+    "CRUD — flusso completo risorsa e gold standard": {
+      "passed": false,
+      "score": 0.0,
+      "details": "add_web_resource fallito: HTTP 200"
+    },
+    "POST /parse local=true — struttura risposta": {
+      "passed": false,
+      "score": 0.0,
+      "details": "HTTP 500 (local)"
+    },
+    "POST /parse — output in markdown": {
+      "passed": false,
+      "score": 0.0,
+      "details": "Nessun parsed_text"
+    },
+    "POST /parse — dominio non supportato": {
+      "passed": true,
+      "score": 1.0,
+      "details": "Errore gestito"
+    },
+    "POST /parse local=true — URL assente nel DB": {
+      "passed": true,
+      "score": 1.0,
+      "details": "Errore gestito"
+    },
+    "POST /parse — qualità parsing (public set) (pass=0.70)": {
+      "passed": false,
+      "score": 0.0,
+      "details": "en.wikipedia.org: nessun punteggio; lospiegone.com: nessun punteggio; www.governo.it: nessun punteggio; www.olympics.com: nessun punteggio",
+      "failed_elements": [
+        {
+          "url": "https://en.wikipedia.org/wiki/BabelNet",
+          "score": null
+        },
+        {
+          "url": "https://en.wikipedia.org/wiki/Minerva",
+          "score": null
+        },
+        {
+          "url": "https://lospiegone.com/2021/06/14/differenze-tra-antisionismo-antisemitismo/",
+          "score": null
+        },
+        {
+          "url": "https://www.governo.it/it/i-governi-dal-1943-ad-oggi/x-legislatura-2-luglio-1987-2-febbraio-1992/governo-andreotti-vii/3171",
+          "score": null
+        },
+        {
+          "url": "https://www.olympics.com/en/athletes/armand-duplantis",
+          "score": null
+        }
+      ]
+    },
+    "GET /full_gs_eval — struttura risposta": {
+      "passed": false,
+      "score": 0.0,
+      "details": "judge_score mancante"
+    },
+    "GET /full_gs_eval — coerenza F1 aggregato": {
+      "passed": true,
+      "score": 1.0,
+      "details": "en.wikipedia.org: F1=0.804 (non verificabile); www.olympics.com: F1=0.727 (non verificabile); www.governo.it: F1=0.951 (non verificabile); lospiegone.com: F1=0.979 (non verificabile)"
+    },
+    "GET /full_gs_eval — dominio non supportato": {
+      "passed": true,
+      "score": 1.0,
+      "details": "Errore gestito"
+    },
+    "GET /full_gs_eval — soglia F1 (pass=0.70)": {
+      "passed": true,
+      "score": 0.8653,
+      "details": "en.wikipedia.org: F1=0.804; www.olympics.com: F1=0.727; www.governo.it: F1=0.951; lospiegone.com: F1=0.979"
+    }
+  },
+  "parse_f1_public": {},
+  "parse_f1_secret": {}
+}

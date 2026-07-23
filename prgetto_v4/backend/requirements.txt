@@ -10,3 +10,4 @@ markdown
 ollama  
 mariadb
 python-multipart
+trafilatura

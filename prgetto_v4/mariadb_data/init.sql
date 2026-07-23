@@ -17,3 +17,14 @@ CREATE TABLE IF NOT EXISTS gold_standard(
     FOREIGN KEY (url) REFERENCES web_resources(url) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS evaluation_cache (
+    url VARCHAR(2048) PRIMARY KEY,
+    domain VARCHAR(255) NOT NULL,
+    precision_score FLOAT,
+    recall_score FLOAT,
+    f1_score FLOAT,
+    judge_score FLOAT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (url) REFERENCES web_resources(url) ON DELETE CASCADE
+);
+
