@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Risultato Parsing - {{ title }}</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --accent: #f1f5f9;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 20px;
+        }
+
+        .btn-back {
+            text-decoration: none;
+            color: var(--primary);
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .metadata-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .meta-item strong {
+            display: block;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+
+        .meta-item span {
+            font-weight: 500;
+            word-break: break-all;
+        }
+
+        .box {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            min-height: 60vh;
+        }
+
+        .box-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--border);
+            background: var(--accent);
+            border-radius: 12px 12px 0 0;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .content-area {
+            padding: 30px;
+            overflow-y: auto;
+            flex-grow: 1;
+            font-size: 1rem;
+            white-space: pre-wrap; /* Mantiene gli a capo originali del testo */
+            line-height: 1.6;
+        }
+
+        .badge {
+            font-size: 0.7rem;
+            padding: 4px 8px;
+            border-radius: 6px;
+            background: #e2e8f0;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header">
+            <div>
+                <a href="/" class="btn-back">← Torna alla Dashboard</a>
+                <h1 style="margin: 10px 0 0 0;">Analisi Documento</h1>
+            </div>
+            <div class="badge">Esonero 1</div>
+        </div>
+
+        <div class="metadata-card">
+            <div class="meta-item">
+                <strong>Titolo Pagina</strong>
+                <span>{{ title }}</span>
+            </div>
+            <div class="meta-item">
+                <strong>Dominio</strong>
+                <span>{{ domain }}</span>
+            </div>
+            <div class="meta-item" style="grid-column: span 2;">
+                <strong>URL Sorgente</strong>
+                <span><a href="{{ url }}" target="_blank">{{ url }}</a></span>
+            </div>
+        </div>
+
+        <div class="box">
+            <div class="box-header">
+                Testo Estratto (Pulito)
+            </div>
+            <div class="content-area">
+                {{ parsed_txt }}
+            </div>
+        </div>
+
+    </div>
+
+</body>
+</html>

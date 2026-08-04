@@ -1,0 +1,23 @@
+services:
+  backend:
+    build: ./backend
+    container_name: backend_service
+    ports:
+      - "8003:8003"
+    volumes:
+      - ./gs_data:/app/gs_data
+      - ./domains.json:/app/domains.json
+    restart: always
+
+  frontend:
+    build: ./frontend
+    container_name: frontend_service
+    ports:
+      - "8004:8004"
+    volumes:
+      - ./domains.json:/app/domains.json
+    environment:
+      - BACKEND_URL=http://backend:8003
+    depends_on:
+      - backend
+    restart: always

@@ -1,6 +1,6 @@
 {
   "identifier": "2063329",
-  "timestamp": "20260723-14:25",
+  "timestamp": "20260723-16:29",
   "mode": "public",
   "domains": [
     "en.wikipedia.org",
@@ -14,13 +14,13 @@
     "ollama": "ok",
     "frontend": "ok"
   },
-  "overall_score": 0.6871,
-  "all_pass": false,
-  "passed": 18,
-  "total": 26,
+  "overall_score": 0.9938,
+  "all_pass": true,
+  "passed": 29,
+  "total": 29,
   "gs_calibration": {
-    "public_avg": 0.5,
-    "public_min": 0.0
+    "public_avg": 0.9773,
+    "public_min": 0.9546
   },
   "tests": {
     "GET /status — componenti": {
@@ -49,9 +49,9 @@
       "details": "web_resources e gold_standard presenti"
     },
     "GET /db_stats — struttura risposta": {
-      "passed": false,
-      "score": 0.0,
-      "details": "HTTP 404"
+      "passed": true,
+      "score": 1.0,
+      "details": "6 domini nelle statistiche"
     },
     "POST /evaluate — struttura risposta": {
       "passed": true,
@@ -71,52 +71,67 @@
     "POST /evaluate_judge — struttura risposta": {
       "passed": true,
       "score": 1.0,
-      "details": "model=llama3.2:3b, score=5"
+      "details": "model=llama3.2:3b, score=4"
     },
     "GET /gold_standard — struttura risposta": {
-      "passed": false,
-      "score": 0.0,
-      "details": "Nessun URL nel gold standard"
+      "passed": true,
+      "score": 1.0,
+      "details": "OK url=https://en.wikipedia.org/wiki/ASCII..."
+    },
+    "GET /gold_standard — URL inesistente": {
+      "passed": true,
+      "score": 1.0,
+      "details": "Errore gestito"
+    },
+    "GET /gold_standard — dominio non supportato": {
+      "passed": true,
+      "score": 1.0,
+      "details": "Errore gestito"
     },
     "GET /gold_standard_urls — struttura risposta": {
-      "passed": false,
-      "score": 0.0,
-      "details": "HTTP 500"
+      "passed": true,
+      "score": 1.0,
+      "details": "5 URL per en.wikipedia.org"
+    },
+    "GET /gold_standard_urls — dominio non supportato": {
+      "passed": true,
+      "score": 1.0,
+      "details": "Errore gestito"
     },
     "POST /add_web_resource — struttura status": {
       "passed": true,
       "score": 1.0,
-      "details": "status=error"
+      "details": "status=ok"
     },
     "POST /add_gold_standard — struttura status": {
       "passed": true,
       "score": 1.0,
-      "details": "status=error"
+      "details": "status=ok"
     },
     "DELETE /web_resource — struttura status": {
       "passed": true,
       "score": 1.0,
-      "details": "status=error"
+      "details": "status=ok"
     },
     "DELETE /gold_standard — struttura status": {
       "passed": true,
       "score": 1.0,
-      "details": "status=error"
+      "details": "status=ok"
     },
     "CRUD — flusso completo risorsa e gold standard": {
-      "passed": false,
-      "score": 0.0,
-      "details": "add_web_resource fallito: HTTP 200"
+      "passed": true,
+      "score": 1.0,
+      "details": "add_web_resource → add_gold_standard → GET → DELETE GS → DELETE resource OK"
     },
     "POST /parse local=true — struttura risposta": {
-      "passed": false,
-      "score": 0.0,
-      "details": "HTTP 500 (local)"
+      "passed": true,
+      "score": 1.0,
+      "details": "Struttura corretta"
     },
     "POST /parse — output in markdown": {
-      "passed": false,
-      "score": 0.0,
-      "details": "Nessun parsed_text"
+      "passed": true,
+      "score": 1.0,
+      "details": "Markdown rilevato"
     },
     "POST /parse — dominio non supportato": {
       "passed": true,
@@ -129,41 +144,19 @@
       "details": "Errore gestito"
     },
     "POST /parse — qualità parsing (public set) (pass=0.70)": {
-      "passed": false,
-      "score": 0.0,
-      "details": "en.wikipedia.org: nessun punteggio; lospiegone.com: nessun punteggio; www.governo.it: nessun punteggio; www.olympics.com: nessun punteggio",
-      "failed_elements": [
-        {
-          "url": "https://en.wikipedia.org/wiki/BabelNet",
-          "score": null
-        },
-        {
-          "url": "https://en.wikipedia.org/wiki/Minerva",
-          "score": null
-        },
-        {
-          "url": "https://lospiegone.com/2021/06/14/differenze-tra-antisionismo-antisemitismo/",
-          "score": null
-        },
-        {
-          "url": "https://www.governo.it/it/i-governi-dal-1943-ad-oggi/x-legislatura-2-luglio-1987-2-febbraio-1992/governo-andreotti-vii/3171",
-          "score": null
-        },
-        {
-          "url": "https://www.olympics.com/en/athletes/armand-duplantis",
-          "score": null
-        }
-      ]
+      "passed": true,
+      "score": 0.9546,
+      "details": "en.wikipedia.org: F1=0.919 (F1=0.891, F1=0.946); lospiegone.com: F1=0.944 (F1=0.944); www.governo.it: F1=0.984 (F1=0.984); www.olympics.com: F1=0.972 (F1=0.972)"
     },
     "GET /full_gs_eval — struttura risposta": {
-      "passed": false,
-      "score": 0.0,
-      "details": "judge_score mancante"
+      "passed": true,
+      "score": 1.0,
+      "details": "OK per dominio en.wikipedia.org"
     },
     "GET /full_gs_eval — coerenza F1 aggregato": {
       "passed": true,
       "score": 1.0,
-      "details": "en.wikipedia.org: F1=0.804 (non verificabile); www.olympics.com: F1=0.727 (non verificabile); www.governo.it: F1=0.951 (non verificabile); lospiegone.com: F1=0.979 (non verificabile)"
+      "details": "en.wikipedia.org: OK (student=0.804, manual=0.804); www.olympics.com: OK (student=0.727, manual=0.727); www.governo.it: OK (student=0.951, manual=0.951); lospiegone.com: OK (student=0.979, manual=0.979)"
     },
     "GET /full_gs_eval — dominio non supportato": {
       "passed": true,
@@ -176,6 +169,11 @@
       "details": "en.wikipedia.org: F1=0.804; www.olympics.com: F1=0.727; www.governo.it: F1=0.951; lospiegone.com: F1=0.979"
     }
   },
-  "parse_f1_public": {},
+  "parse_f1_public": {
+    "en.wikipedia.org": 0.9186,
+    "lospiegone.com": 0.944,
+    "www.governo.it": 0.9836,
+    "www.olympics.com": 0.9722
+  },
   "parse_f1_secret": {}
 }

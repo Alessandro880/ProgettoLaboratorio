@@ -1,0 +1,89 @@
+services:
+  # --- BACKEND ---
+  backend:
+    build: ./backend
+    container_name: backend_service
+    ports:
+      - "8003:8003"
+    volumes:
+      - ./gs_data:/app/gs_data
+      - ./domains.json:/app/domains.json
+    environment: 
+      - OLLAMA_HOST=http://ollama:11434
+
+      - DB_HOST=mariadb
+      - DB_PORT=3306
+      - DB_NAME=project_db
+      - DB_USER=user
+      - DB_PASSWORD=sonoio
+    depends_on:
+      ollama-init:
+        condition: service_completed_successfully
+    restart: always
+  
+
+  # --- FRONTEND ---
+  frontend:
+    build: ./frontend
+    container_name: frontend_service
+    ports:
+      - "8004:8004"
+    volumes:
+      - ./domains.json:/app/domains.json
+    environment:
+      - BACKEND_URL=http://backend:8003
+    depends_on:
+      - backend
+    restart: always
+
+  # --- OLLAMA ---
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama_service
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: always
+
+  # --- CONTAINER DI INIZIALIZZAZIONE (SCARICA IL MODELLO) ---
+  ollama-init:
+    image: ollama/ollama:latest
+    container_name: ollama_init
+    depends_on:
+      - ollama
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+    entrypoint:
+      - sh
+      - -c
+      - |
+        echo "In attesa del server Ollama..."
+        while ! ollama list > /dev/null 2>&1; do sleep 2; done
+        echo "Ollama pronto. Eseguo il pull del modello llama3.2:3b..."
+        ollama pull llama3.2:3b
+        echo "Modello scaricato! Il backend può ora partire."
+    volumes:
+      - ollama_data:/root/.ollama
+
+  mariadb:
+    image: mariadb:latest 
+    container_name: mariadb
+    ports:
+      - "3306:3306"
+    environment:
+      - MARIADB_ROOT_PASSWORD=sonoio
+      - MARIADB_DATABASE=project_db
+      - MARIADB_USER=user
+      - MARIADB_PASSWORD=sonoio
+    volumes:
+      - mariadb_storage:/var/lib/mysql
+      - ./mariadb_data:/docker-entrypoint-initdb.d
+     
+    restart: always
+
+# Dichiarazione globale del volume
+volumes:
+  ollama_data:
+  mariadb_storage:
+

@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Scraping & NLP Dashboard</title>
+    <!-- Bootstrap 5 per un design pulito ed elegante -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; }
+        .nav-card { cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
+        .nav-card:hover { transform: translateY(-5px); box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .status-dot { height: 12px; width: 12px; border-radius: 50%; display: inline-block; margin-right: 5px; }
+        .status-ok { background-color: #28a745; }
+        .status-error { background-color: #dc3545; }
+        .section-view { display: none; }
+        .section-view.active { display: block; }
+        pre { background-color: #f1f3f5; padding: 15px; border-radius: 5px; max-height: 400px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+
+<!-- Navbar & Header -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+    <div class="container">
+        <a class="navbar-brand" href="#" onclick="showSection('home')">Progetto Laboratorio</a>
+    </div>
+</nav>
+
+<div class="container">
+    
+    <!-- Menu di navigazione a Card (Mostrato solo nella Home) -->
+    <div class="row mb-4" id="home-cards">
+        <div class="col-md-4">
+            <div class="card text-center nav-card p-3" onclick="showSection('parser')">
+                <h5>Parser & Evaluation</h5>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center nav-card p-3" onclick="showSection('gs')">
+                <h5>Gold Standard</h5>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center nav-card p-3" onclick="showSection('stats')">
+                <h5>Stats</h5>
+            </div>
+        </div>
+    </div>
+
+    <!-- SEZIONE 1: HOME -->
+    <div id="home" class="section-view active">
+        <!-- Gruppo -->
+        <div class="card mb-4">
+            <div class="card-body d-flex justify-content-between">
+                <span><strong>Studente 1:</strong> Matricola 2063329</span>
+                <span><strong>Studente 2:</strong> Matricola 234567</span>
+                <span><strong>Studente 3:</strong> Matricola 345678</span>
+            </div>
+        </div>
+
+        <!-- System Status -->
+        <div class="card mb-4">
+            <div class="card-header"><strong>System Status</strong></div>
+            <div class="card-body d-flex gap-4">
+                <div><span id="status-backend" class="status-dot status-error"></span> Backend</div>
+                <div><span id="status-db" class="status-dot status-error"></span> MariaDB</div>
+                <div><span id="status-ollama" class="status-dot status-error"></span> Ollama</div>
+            </div>
+        </div>
+
+        <!-- Domini Supportati -->
+        <div class="card">
+            <div class="card-header"><strong>Domini supportati</strong></div>
+            <ul class="list-group list-group-flush" id="domains-list">
+                <li class="list-group-item text-muted">Caricamento in corso... </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- SEZIONE 2: PARSER & EVALUATION -->
+    <div id="parser" class="section-view">
+        <button class="btn btn-outline-secondary mb-3" onclick="showSection('home')">← Torna alla Home</button>
+        
+        <div class="card mb-4">
+            <div class="card-header"><strong>Testa il Parser (per le metriche attendere qualche secondo)</strong></div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-8">
+                        <input type="text" id="parse-url" class="form-control" placeholder="Inserisci URL da parsare...">
+                    </div>
+                    <div class="col-md-2">
+                        <select id="parse-mode" class="form-select">
+                            <option value="false">Live (Web)</option>
+                            <option value="true">Local (DB)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button class="btn btn-primary w-100" onclick="runParser()">Esegui</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row" id="parser-results" style="display: none;">
+            <div class="col-md-6">
+                <h5>HTML / Input</h5>
+                <pre id="parse-html"></pre>
+            </div>
+            <div class="col-md-6">
+                <h5>Output Parsed (Markdown)</h5>
+                <pre id="parse-md"></pre>
+            </div>
+        </div>
+
+        <!-- Box Metriche -->
+        <div class="card mt-4" id="eval-box" style="display: none;">
+            <div class="card-header bg-success text-white"><strong>Risultati Evaluation (vs Gold Standard)</strong></div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-3"><h5>Precision</h5><h3 id="eval-prec">-</h3></div>
+                    <div class="col-md-3"><h5>Recall</h5><h3 id="eval-rec">-</h3></div>
+                    <div class="col-md-3"><h5>F1 Score</h5><h3 id="eval-f1">-</h3></div>
+                    <div class="col-md-3"><h5>LLM Judge</h5><h3 id="eval-judge">-</h3><small id="eval-feedback"></small></div>
+                </div>
+            </div>
+        </div>
+        <div class="alert alert-warning mt-4" id="no-gs-warning" style="display: none;">
+            Nessun Gold Standard trovato per questo URL. Impossibile calcolare le metriche.
+        </div>
+    </div>
+
+    <!-- SEZIONE 3: GOLD STANDARD BUILDER -->
+    <div id="gs" class="section-view">
+        <button class="btn btn-outline-secondary mb-3" onclick="showSection('home')">← Torna alla Home</button>
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card mb-4">
+                    <div class="card-header"><strong>Aggiungi al Gold Standard</strong></div>
+                    <div class="card-body">
+                        <input type="text" id="gs-url" class="form-control mb-2" placeholder="URL della pagina">
+                        <button class="btn btn-secondary w-100 mb-3" onclick="fetchHtmlForGS()">1. Carica HTML</button>
+                        
+                        <div id="gs-html-container" style="display: none;">
+                            <label><strong>HTML Scaricato (Grezzo):</strong></label>
+                            <pre id="gs-html" style="max-height: 150px;"></pre>
+                            
+                            <label class="mt-2"><strong>Testo Pulito (Gold Text):</strong></label>
+                            <textarea id="gs-text" class="form-control mb-3" rows="6" placeholder="Incolla qui il testo corretto e pulito..."></textarea>
+                            
+                            <button class="btn btn-success w-100" onclick="saveGS()">2. Salva nel Database</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <strong>URL nel Gold Standard</strong>
+                        <select id="gs-domain-select" class="form-select form-select-sm w-auto" onchange="loadGSUrls()"></select>
+                    </div>
+                    <ul class="list-group list-group-flush" id="gs-url-list">
+                        <!-- Popolato dinamicamente -->
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SEZIONE 4: STATS -->
+    <div id="stats" class="section-view">
+        <button class="btn btn-outline-secondary mb-3" onclick="showSection('home')">← Torna alla Home</button>
+
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <strong>Statistiche Database</strong>
+                <button class="btn btn-sm btn-primary" onclick="loadStats()">Aggiorna Statistiche</button>
+            </div>
+            <div class="card-body">
+                <table class="table table-striped text-center">
+                    <thead>
+                        <tr>
+                            <th>Dominio</th>
+                            <th>Web Resources</th>
+                            <th>Gold Standard</th>
+                            <th>Avg F1</th>
+                            <th>Avg Judge Score</th>
+                        </tr>
+                    </thead>
+                    <tbody id="stats-table">
+                        <!-- Popolato dinamicamente -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- LOGICA JAVASCRIPT -->
+<script>
+    const BACKEND_URL = `http://${window.location.hostname}:8003`;
+    let supportedDomains = [];
+
+    // Cambia vista e nascondi le card della home se non siamo nella home
+    function showSection(sectionId) {
+        document.querySelectorAll('.section-view').forEach(el => el.classList.remove('active'));
+        document.getElementById(sectionId).classList.add('active');
+        
+        if(sectionId === 'home') {
+            document.getElementById('home-cards').style.display = 'flex';
+        } else {
+            document.getElementById('home-cards').style.display = 'none';
+        }
+
+        if(sectionId === 'stats') loadStats();
+        if(sectionId === 'gs') loadGSUrls();
+    }
+
+    // --- HOME & INIT ---
+    async function initDashboard() {
+        // 1. Carica Status
+        try {
+            const res = await fetch(`${BACKEND_URL}/status`);
+            const status = await res.json();
+            document.getElementById('status-backend').className = `status-dot status-${status.backend === 'ok' ? 'ok' : 'error'}`;
+            document.getElementById('status-db').className = `status-dot status-${status.database === 'ok' ? 'ok' : 'error'}`;
+            document.getElementById('status-ollama').className = `status-dot status-${status.ollama === 'ok' ? 'ok' : 'error'}`;
+        } catch(e) { console.error("Backend irragiungibile", e); }
+
+        // 2. Carica Domini
+        try {
+            const res = await fetch(`${BACKEND_URL}/domains`);
+            const data = await res.json();
+            supportedDomains = data.domains || data;
+            const ul = document.getElementById('domains-list');
+            const select = document.getElementById('gs-domain-select');
+            ul.innerHTML = ''; select.innerHTML = '';
+            
+            supportedDomains.forEach(domain => {
+                ul.innerHTML += `<li class="list-group-item">🌐 ${domain}</li>`;
+                select.innerHTML += `<option value="${domain}">${domain}</option>`;
+            });
+            loadGSUrls();
+        } catch(e) { console.error(e); }
+    }
+
+    // --- PARSER E EVALUATION ---
+    async function runParser() {
+        const url = document.getElementById('parse-url').value;
+        const local = document.getElementById('parse-mode').value === 'true';
+        if(!url) return alert("Inserisci un URL!");
+
+        document.getElementById('eval-box').style.display = 'none';
+        document.getElementById('no-gs-warning').style.display = 'none';
+        document.getElementById('parse-html').innerText = "Caricamento...";
+        document.getElementById('parse-md').innerText = "Caricamento...";
+        document.getElementById('parser-results').style.display = 'flex';
+
+        try {
+            const res = await fetch(`${BACKEND_URL}/parse`, {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({url: url, local: local})
+            });
+            const parsedData = await res.json();
+            if(!res.ok) throw new Error(parsedData.detail || "Errore parser");
+
+            document.getElementById('parse-html').innerText = parsedData.html_text.substring(0, 1500) + "\n\n...[TRONCATO PER VISUALIZZAZIONE]...";
+            document.getElementById('parse-md').innerText = parsedData.parsed_text;
+
+            const gsRes = await fetch(`${BACKEND_URL}/gold_standard?url=${encodeURIComponent(url)}`);
+            if(gsRes.ok) {
+                const gsData = await gsRes.json();
+                const evalData = {parsed_text: parsedData.parsed_text, gold_text: gsData.gold_text};
+                
+                const metricRes = await fetch(`${BACKEND_URL}/evaluate`, {
+                    method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(evalData)
+                });
+                const metrics = await metricRes.json();
+
+                const judgeRes = await fetch(`${BACKEND_URL}/evaluate_judge`, {
+                    method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(evalData)
+                });
+                const judge = await judgeRes.json();
+
+                document.getElementById('eval-prec').innerText = metrics.token_level_eval.precision.toFixed(2);
+                document.getElementById('eval-rec').innerText = metrics.token_level_eval.recall.toFixed(2);
+                document.getElementById('eval-f1').innerText = metrics.token_level_eval.f1.toFixed(2);
+                document.getElementById('eval-judge').innerText = `${judge.judge_score}/5`;
+                document.getElementById('eval-feedback').innerText = judge.judge_feedback || "";
+                document.getElementById('eval-box').style.display = 'block';
+
+            } else {
+                document.getElementById('no-gs-warning').style.display = 'block';
+            }
+        } catch(e) {
+            alert("Errore: " + e.message);
+        }
+    }
+
+    // --- GOLD STANDARD BUILDER ---
+    let currentHtmlForGs = "";
+    async function fetchHtmlForGS() {
+        const url = document.getElementById('gs-url').value;
+        if(!url) return alert("Inserisci un URL");
+        
+        try {
+            const res = await fetch(`${BACKEND_URL}/parse`, {
+                method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({url: url, local: false})
+            });
+            const data = await res.json();
+            if(!res.ok) throw new Error(data.detail);
+            
+            currentHtmlForGs = data.html_text;
+            document.getElementById('gs-html').innerText = currentHtmlForGs.substring(0, 1000) + "...";
+            document.getElementById('gs-html-container').style.display = 'block';
+        } catch(e) { alert("Errore fetch HTML: " + e.message); }
+    }
+
+    async function saveGS() {
+        const url = document.getElementById('gs-url').value;
+        const goldText = document.getElementById('gs-text').value;
+        if(!goldText) return alert("Inserisci il testo pulito!");
+
+        try {
+            await fetch(`${BACKEND_URL}/add_web_resource`, {
+                method: "POST", headers: {"Content-Type": "application/json"}, 
+                body: JSON.stringify({url: url, html_text: currentHtmlForGs})
+            });
+            await fetch(`${BACKEND_URL}/add_gold_standard`, {
+                method: "POST", headers: {"Content-Type": "application/json"}, 
+                body: JSON.stringify({url: url, gold_text: goldText})
+            });
+            alert("Salvato con successo!");
+            document.getElementById('gs-text').value = '';
+            document.getElementById('gs-html-container').style.display = 'none';
+            loadGSUrls();
+        } catch(e) { alert("Errore salvataggio: " + e.message); }
+    }
+
+    async function loadGSUrls() {
+        const domain = document.getElementById('gs-domain-select').value;
+        if(!domain) return;
+        
+        const ul = document.getElementById('gs-url-list');
+        ul.innerHTML = 'Caricamento...';
+        
+        try {
+            const res = await fetch(`${BACKEND_URL}/gold_standard_urls?domain=${encodeURIComponent(domain)}`);
+            if(!res.ok) { ul.innerHTML = '<li class="list-group-item text-muted">Nessun URL trovato</li>'; return; }
+            
+            const data = await res.json();
+            ul.innerHTML = '';
+            data.gold_standard_urls.forEach(url => {
+                ul.innerHTML += `
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span style="font-size: 0.9em; word-break: break-all;">${url}</span>
+                        <button class="btn btn-sm btn-danger ms-2" onclick="deleteGS('${url}')">Elimina</button>
+                    </li>`;
+            });
+        } catch(e) { ul.innerHTML = "Errore caricamento"; }
+    }
+
+    async function deleteGS(url) {
+        if(!confirm("Sicuro di voler eliminare questa risorsa e il relativo GS?")) return;
+        try {
+            await fetch(`${BACKEND_URL}/web_resource?url=${encodeURIComponent(url)}`, { method: "DELETE" });
+            loadGSUrls();
+        } catch(e) { alert("Errore eliminazione"); }
+    }
+
+    // --- STATS ---
+    async function loadStats() {
+        const tbody = document.getElementById('stats-table');
+        tbody.innerHTML = '<tr><td colspan="5">Caricamento statistiche...</td></tr>';
+        
+        try {
+            const res = await fetch(`${BACKEND_URL}/db_stats`);
+            const data = await res.json();
+            tbody.innerHTML = '';
+            
+            supportedDomains.forEach(domain => {
+                const webRes = data.web_resources[domain] || 0;
+                const gs = data.gold_standard[domain] || 0;
+                const avgF1 = (data.avg_eval[domain] && data.avg_eval[domain].token_level_eval) ? data.avg_eval[domain].token_level_eval.f1 : 0.0;
+                const judge = (data.avg_eval_judge[domain]) ? data.avg_eval_judge[domain].judge_score : 0.0;
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td><strong>${domain}</strong></td>
+                        <td>${webRes}</td>
+                        <td>${gs}</td>
+                        <td>${avgF1}</td>
+                        <td>${judge}</td>
+                    </tr>
+                `;
+            });
+        } catch(e) { tbody.innerHTML = '<tr><td colspan="5" class="text-danger">Errore caricamento stat</td></tr>'; }
+    }
+
+    // Inizializza tutto all'avvio
+    window.onload = initDashboard;
+</script>
+
+</body>
+</html>

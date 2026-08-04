@@ -1,5 +1,5 @@
 services:
-  # --- IL TUO BACKEND ---
+  # --- BACKEND ---
   backend:
     build: ./backend
     container_name: backend_service
@@ -8,7 +8,7 @@ services:
     volumes:
       - ./gs_data:/app/gs_data
       - ./domains.json:/app/domains.json
-    environment: # <-- AGGIUNGI QUESTE DUE RIGHE
+    environment: 
       - OLLAMA_HOST=http://ollama:11434
 
       - DB_HOST=mariadb
@@ -17,12 +17,12 @@ services:
       - DB_USER=user
       - DB_PASSWORD=sonoio
     depends_on:
-      # LA MAGIA È QUI: Il backend aspetta che ollama-init abbia finito il suo lavoro
       ollama-init:
         condition: service_completed_successfully
     restart: always
+  
 
-  # --- IL TUO FRONTEND ---
+  # --- FRONTEND ---
   frontend:
     build: ./frontend
     container_name: frontend_service
@@ -36,7 +36,7 @@ services:
       - backend
     restart: always
 
-  # --- OLLAMA (IL MOTORE) ---
+  # --- OLLAMA ---
   ollama:
     image: ollama/ollama:latest
     container_name: ollama_service
@@ -67,7 +67,7 @@ services:
       - ollama_data:/root/.ollama
 
   mariadb:
-    image: mariadb:latest # Puoi specificare una versione se preferisci (es. mariadb:10.11)
+    image: mariadb:latest 
     container_name: mariadb
     ports:
       - "3306:3306"

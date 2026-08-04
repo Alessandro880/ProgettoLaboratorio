@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lista Domini Assegnati</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --hover-bg: #f1f5f9;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 20px;
+        }
+
+        .btn-back {
+            text-decoration: none;
+            color: var(--primary);
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        /* Stili per la lista dei domini */
+        .domain-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden; /* Mantiene i bordi arrotondati */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+
+        .domain-item {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: background-color 0.2s;
+        }
+
+        /* Rimuove il bordo inferiore dall'ultimo elemento */
+        .domain-item:last-child {
+            border-bottom: none;
+        }
+
+        .domain-item:hover {
+            background-color: var(--hover-bg);
+        }
+
+        .domain-name {
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: var(--text-main);
+            text-decoration: none;
+        }
+
+        .domain-icon {
+            color: var(--text-muted);
+            background: #e2e8f0;
+            padding: 5px 10px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header">
+            <div>
+                <a href="/" class="btn-back">← Torna alla Dashboard</a>
+                <h1 style="margin: 10px 0 0 0;">Domini Assegnati</h1>
+            </div>
+            <div class="badge" style="font-size: 0.8rem; padding: 4px 8px; border-radius: 6px; background: #e2e8f0;">
+                Totale: {{ elenco_domini | length }}
+            </div>
+        </div>
+
+        <ul class="domain-list">
+            {% for dominio in elenco_domini %}
+                <li class="domain-item">
+                    <span class="domain-name">{{ dominio }}</span>
+                    
+                </li>
+            {% else %}
+                <li class="empty-state">
+                    Nessun dominio trovato nel file JSON.
+                </li>
+            {% endfor %}
+            </ul>
+
+    </div>
+
+</body>
+</html>
