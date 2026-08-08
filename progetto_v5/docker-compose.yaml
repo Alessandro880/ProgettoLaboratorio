@@ -46,7 +46,7 @@ services:
       - ollama_data:/root/.ollama
     restart: always
 
-  # --- CONTAINER DI INIZIALIZZAZIONE (SCARICA IL MODELLO) ---
+  # --- CONTAINER DI INIZIALIZZAZIONE (SCARICA IL MODELLO)---
   ollama-init:
     image: ollama/ollama:latest
     container_name: ollama_init

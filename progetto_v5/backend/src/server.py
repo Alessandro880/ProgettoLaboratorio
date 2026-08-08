@@ -19,7 +19,6 @@ from fastapi import BackgroundTasks
 import threading
 
 """
-
     Backend API Server (FastAPI) - Porta 8003
     Motore di web scraping (tramite crawl4ai) e di valutazione testi. 
     Riceve le richieste dal frontend, le elabora secondo le varie funzioni
@@ -30,7 +29,6 @@ import threading
     -  Restituisce la lista di domini disponibili.
     -  Valuta la qualita di due stringhe, confrontandole tramite token_level_eval e sequence_similarity_eval.
     -  Restituisce i gold_standard per ogni dominio con i vari url mappati.
-
 """
 
 
@@ -95,8 +93,8 @@ def calcola_e_salva_valutazione_in_background(url: str, gold_text: str):
         seq_perf = bool(w_seq.get("is_perfect_match", False))
 
         try:
-            limite_1 = min(1000, len(parsed_pulito)//4)
-            limite_2 = min(1000, len(gold_pulito)//4)
+            limite_1 = min(400, len(parsed_pulito)//4)
+            limite_2 = min(400, len(gold_pulito)//4)
             prompt = f"""Confronta i testi. Rispondi SOLO in JSON con "model_name": "{MODEL}", "judge_score" (intero da 0 a 5).
             T1: {parsed_pulito[:limite_1]}
             T2: {gold_pulito[:limite_2]}"""
@@ -206,7 +204,7 @@ def inizializza_e_popola_db():
                     seq_ratio FLOAT,
                     seq_match FLOAT,
                     seq_perfect BOOLEAN,
-                    judge_score FLOAT,
+                    judge_score INT,
                     CONSTRAINT fk_eval_gold FOREIGN KEY (url) REFERENCES gold_standard(url) ON DELETE CASCADE
                 )
             """)
@@ -1042,8 +1040,16 @@ def db_schema():
             "gold_text": "longtext NOT NULL",
             "created_at": "datetime"
         },
-        "domini":{
-            "domain":"varchar(255), PK"
+        "evaluations":{
+            "url" : "varchar(255), PK",
+            "precision_val" : "FLOAT",
+            "recall_val" :  "FLOAT",
+            "f1_val" : "FLOAT",
+            "seq_ratio":  "FLOAT",
+            "seq_match" : "FLOAT",
+            "seq_perfect"  : "BOOLEAN",
+            "judge_score" : "INT",
+            "judge_score" :  "FLOAT"
         }
     }
 

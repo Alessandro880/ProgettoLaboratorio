@@ -39,21 +39,17 @@ def token_level_eval(testo_estratto: str, testo_gs: str) -> dict:
 
     intersezione = tokens_estratti.intersection(tokens_gs)
     len_intersezione = len(intersezione)
-
-    # Calcolo Metriche (con controlli per evitare ZeroDivisionError)
     
     if len(tokens_estratti) > 0:
         precision = len_intersezione / len(tokens_estratti)
     else:
         precision = 0.0
 
-    # Recall: |tokens_estratti ∩ tokens_gs| / |tokens_gs|
     if len(tokens_gs) > 0:
         recall = len_intersezione / len(tokens_gs)
     else:
         recall = 0.0
 
-    # F1: 2 * precision * recall / (precision + recall)
     if (precision + recall) > 0:
         f1 = 2 * precision * recall / (precision + recall)
     else:
@@ -70,12 +66,10 @@ def sequence_similarity_eval(testo_estratto: str, testo_gs: str) -> dict:
     testo_estratto_clean = testo_estratto.lower().strip()
     testo_gs_clean = testo_gs.lower().strip()
 
-    # SequenceMatcher trova i blocchi contigui di testo corrispondenti
     matcher = difflib.SequenceMatcher(None, testo_estratto_clean, testo_gs_clean)
     
     similarity_ratio = matcher.ratio()
     
-    # Restituisce la lunghezza della frase contigua più lunga trovata in entrambi
     match = matcher.find_longest_match(0, len(testo_estratto_clean), 0, len(testo_gs_clean))
     longest_match_len = match.size
 

@@ -27,7 +27,6 @@ def formatta_in_markdown(titolo, testo_convertito):
         markdown_finale += f"# {titolo_pulito}\n\n"
         
     if testo_convertito:
-        # Pulisce spazi orizzontali in eccesso mantenendo gli a capo
         testo_pulito = re.sub(r'[ \t]+', ' ', testo_convertito)
         markdown_finale += testo_pulito.strip()
         
@@ -97,89 +96,8 @@ def clean_wikipedia_text(html_content):
     return formatta_in_markdown(titolo, testo_convertito)
 
 
-# Parser OLYMPICS
-
-# def clean_olympics_text(html_content):
-#     soup = BeautifulSoup(html_content, 'html.parser')
-#     titolo_tag = soup.find('h1')
-#     titolo = titolo_tag.get_text(separator=' ', strip=True) if titolo_tag else "Titolo non trovato"
-
-#     # 1. Rimuoviamo tag inutili alla lettura
-#     for tag in soup.find_all(['nav', 'header', 'footer', 'aside', 'script', 'style', 'svg', 'button', 'form', 'iframe', 'picture', 'video']):
-#         tag.decompose()
-
-#     # 2. Gestione link lunghi (Rilassata)
-#     for a in soup.find_all('a'):
-#         if a.attrs is None: continue
-#         if len(a.get_text(strip=True)) > 80: 
-#             a.decompose()
-
-#     # 3. Individuazione dell'area principale
-#     main_area = soup.find('main') or soup.find(id='__next') or soup.find(id='root') or soup.find('article') or soup.find('body') or soup
-    
-#     # NOVITÀ: Evitiamo che testi in span o sup (es. 73rd) vengano spezzati dal newline
-#     for inline in main_area.find_all(['span', 'sup', 'sub', 'b', 'i', 'strong', 'em']):
-#         inline.unwrap()
-
-#     testo_grezzo = main_area.get_text(separator='\n', strip=True)
-#     linee = testo_grezzo.split('\n')
-#     testo_valido = []
-
-#     # 4. Filtri testo ampliati
-#     parole_spazzatura = {
-#         'condividi', 'share', 'leggi di più', 'read more', 'newsletter', 
-#         'copyright', 'all rights reserved', 'advertisement', 'pubblicità',
-#         'cookie', 'accetta', 'rifiuta', 'guarda anche', 
-#         'scopri e rivivi', 'olympic channel', 'film e serie', 'best of', 
-#         'originali', 'in associazione con', 'privacy policy', 'terms of service',
-#         'sitemap', 'contact centre', 'about us', 'shop', 'museum', 
-#         'international olympic committee', 'explore', 'topics', 'podcast',
-#         'corporate', 'original series', 'live events', 'tv channel',
-#         'all olympic games', 'replays & highlights', 'results & medals',
-#         'you may like', 'featured', 'quick update: we have updated', 'find it here',
-#         'olympic games milano cortina 2026'
-#     }
-    
-#     # NOVITÀ: Voci di menu singole da eliminare solo in caso di match esatto
-#     menu_esatti = {'athletes', 'sports', 'more', 'news'}
-
-#     for linea in linee:
-#         linea = linea.strip()
-#         linea_lower = linea.lower()
-        
-#         if not linea or linea_lower == titolo.lower() or linea in testo_valido:
-#             continue
-#         if '|' in linea and len(linea) < 50:
-#             continue
-            
-#         # Filtro parziale
-#         if any(p in linea_lower for p in parole_spazzatura):
-#             continue
-            
-#         # Filtro esatto
-#         if linea_lower in menu_esatti:
-#             continue
-
-#         lunghezza = len(linea)
-#         numero_parole = len(linea.split())
-
-#         # Le stringhe con i ":" le teniamo se hanno un minimo di senso
-#         if ":" in linea and lunghezza > 3:
-#             testo_valido.append(linea)
-#             continue
-
-#         # Salvataggio dati brevi e statistici
-#         if lunghezza > 20 and numero_parole >= 2:
-#             testo_valido.append(linea)
-#         elif 4 <= lunghezza <= 60:
-#             testo_valido.append(linea)
-#         elif 0 < lunghezza < 4 and linea.isalnum(): 
-#             testo_valido.append(linea)
-
-#     return formatta_in_markdown(titolo, "\n\n".join(testo_valido))
 
 def clean_olympics_markdown(markdown_grezzo: str) -> tuple:
-    """Pulisce il markdown già generato da Crawl4AI per olympics.com"""
     linee = markdown_grezzo.split('\n')
     
     titolo = "Titolo non trovato"
@@ -200,18 +118,9 @@ def clean_olympics_markdown(markdown_grezzo: str) -> tuple:
         'original series', 'live events', 'tv channel',
         'all olympic games', 'replays & highlights',
         'results & medals', 'newsletter', 'advertisement',
-        'social network',  # campo metadato della pagina atleta
-            'sweden anthem',
-        'replays',          # cattura "Armand DUPLANTIS Replays"
-        'olympic results',  # cattura "Olympic Results"  
-        'athlete olympic results content',
-        'italy anthem',
-        'france anthem',
-        'germany anthem',
-        'usa anthem',       # aggiungi altri paesi se servono
-        'anthem',           # più generico, cattura tutti gli inni
-        'highlights',
-        'athlete olympic',
+        'social network',  'sweden anthem', 'replays',         
+        'olympic results',  'italy anthem', 'france anthem',
+        'germany anthem', 'usa anthem', 'anthem', 'highlights', 'athlete olympic',
         }
     
     for linea in linee:
@@ -221,25 +130,20 @@ def clean_olympics_markdown(markdown_grezzo: str) -> tuple:
             
         linea_lower = linea.lower()
         
-        # Estrai titolo dall'H1 markdown
         if linea.startswith('# ') and titolo == "Titolo non trovato":
             titolo = linea[2:].strip()
-            continue  # il titolo lo gestisce formatta_in_markdown
+            continue  
         
-        # Deduplicazione
         if linea_lower in seen:
             continue
         seen.add(linea_lower)
         
-        # Filtro spazzatura
         if any(p in linea_lower for p in parole_spazzatura):
             continue
         
-        # Salta righe che sono solo un link markdown [testo](url)
         if linea.startswith('[') and '](http' in linea and len(linea) < 80:
             continue
         
-        # Salta separatori markdown
         if linea.startswith('---') or linea.startswith('==='):
             continue
             
@@ -260,7 +164,6 @@ def clean_olympics_text(html_content):
 
     righe_finali = []
 
-    # --- METADATI (paese, disciplina, medaglie, ecc.) ---
     nocs = soup.find(attrs={"data-cy": "nocs"})
     if nocs:
         for span in nocs.find_all('span'):
@@ -282,7 +185,6 @@ def clean_olympics_text(html_content):
             if t:
                 righe_finali.append(t)
 
-    # --- BIOGRAFIA ---
     main_area = (soup.find('main') or soup.find(id='__next') or
                  soup.find(id='root') or soup.find('article') or
                  soup.find('body') or soup)
@@ -359,11 +261,9 @@ def clean_olympics_text(html_content):
 def clean_governo_text(html_content):
     soup = BeautifulSoup(html_content, 'html.parser')
     
-    # 1. Estrazione del Titolo
     titolo_tag = soup.find('h1')
     titolo = titolo_tag.get_text(strip=True) if titolo_tag else "Titolo non trovato"
 
-    # 2. Ricerca del contenitore principale (Ordine universale per siti Drupal/PA)
     content = (
         soup.find('div', class_='region-content') or
         soup.find('div', class_='view-content') or
@@ -376,33 +276,24 @@ def clean_governo_text(html_content):
     if not content: 
         return formatta_in_markdown(titolo, "Nessun contenuto principale rilevato sulla pagina.")
 
-    # 3. Pulizia profonda dei tag inutili (inclusi iframe e noscript)
     for tag in content.find_all(['script', 'style', 'nav', 'iframe', 'noscript', 'svg']):
         tag.decompose()
         
-    # 4. Pulizia flessibile del "rumore" (Menu, social, sidebar)
-    # L'uso di una lambda sui loop della classe gestisce i tag con classi multiple
     noise_keywords = ['social', 'share', 'tags', 'links', 'menu', 'sidebar', 'breadcrumb', 'pagination']
     for tag in content.find_all(class_=lambda classes: classes and any(
         keyword in cls.lower() for cls in classes for keyword in noise_keywords
     )):
         tag.decompose()
 
-    # 5. Estrazione sicura del testo
-    # Passiamo '\n' come separatore per evitare che gli elementi di una lista <li> si attacchino tra loro
     testo_grezzo = content.get_text(separator='\n', strip=True)
     
-    # 6. Filtraggio intelligente delle linee
     linee_valide = []
     for linea in testo_grezzo.split('\n'):
         linea_pulita = linea.strip()
         
-        # Filtriamo le stringhe vuote o artefatti minuscoli (< 3 caratteri), 
-        # ma conserviamo righe composte anche da una o due sole parole.
         if len(linea_pulita) > 3: 
             linee_valide.append(linea_pulita)
 
-    # Ricompatta il testo in paragrafi Markdown
     return formatta_in_markdown(titolo, "\n\n".join(linee_valide))
 
 

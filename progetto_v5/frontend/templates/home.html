@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Web Scraping & NLP Dashboard</title>
-    <!-- Bootstrap 5 per un design pulito ed elegante -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body { background-color: #f8f9fa; }
@@ -20,7 +19,6 @@
 </head>
 <body>
 
-<!-- Navbar & Header -->
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
     <div class="container">
         <a class="navbar-brand" href="#" onclick="showSection('home')">Progetto Laboratorio</a>
@@ -29,7 +27,6 @@
 
 <div class="container">
     
-    <!-- Menu di navigazione a Card (Mostrato solo nella Home) -->
     <div class="row mb-4" id="home-cards">
         <div class="col-md-4">
             <div class="card text-center nav-card p-3" onclick="showSection('parser')">
@@ -50,16 +47,14 @@
 
     <!-- SEZIONE 1: HOME -->
     <div id="home" class="section-view active">
-        <!-- Gruppo -->
         <div class="card mb-4">
             <div class="card-body d-flex justify-content-between">
                 <span><strong>Studente 1:</strong> Matricola 2063329</span>
-                <span><strong>Studente 2:</strong> Matricola 234567</span>
-                <span><strong>Studente 3:</strong> Matricola 345678</span>
+                <span><strong>Studente 2:</strong> Matricola 2103184</span>
+                <span><strong>Studente 3:</strong> Matricola 2118949</span>
             </div>
         </div>
 
-        <!-- System Status -->
         <div class="card mb-4">
             <div class="card-header"><strong>System Status</strong></div>
             <div class="card-body d-flex gap-4">
@@ -69,7 +64,6 @@
             </div>
         </div>
 
-        <!-- Domini Supportati -->
         <div class="card">
             <div class="card-header"><strong>Domini supportati</strong></div>
             <ul class="list-group list-group-flush" id="domains-list">
@@ -113,7 +107,6 @@
             </div>
         </div>
 
-        <!-- Box Metriche -->
         <div class="card mt-4" id="eval-box" style="display: none;">
             <div class="card-header bg-success text-white"><strong>Risultati Evaluation (vs Gold Standard)</strong></div>
             <div class="card-body">
@@ -162,7 +155,6 @@
                         <select id="gs-domain-select" class="form-select form-select-sm w-auto" onchange="loadGSUrls()"></select>
                     </div>
                     <ul class="list-group list-group-flush" id="gs-url-list">
-                        <!-- Popolato dinamicamente -->
                     </ul>
                 </div>
             </div>
@@ -190,7 +182,6 @@
                         </tr>
                     </thead>
                     <tbody id="stats-table">
-                        <!-- Popolato dinamicamente -->
                     </tbody>
                 </table>
             </div>
@@ -204,7 +195,6 @@
     const BACKEND_URL = `http://${window.location.hostname}:8003`;
     let supportedDomains = [];
 
-    // Cambia vista e nascondi le card della home se non siamo nella home
     function showSection(sectionId) {
         document.querySelectorAll('.section-view').forEach(el => el.classList.remove('active'));
         document.getElementById(sectionId).classList.add('active');
@@ -221,7 +211,6 @@
 
     // --- HOME & INIT ---
     async function initDashboard() {
-        // 1. Carica Status
         try {
             const res = await fetch(`${BACKEND_URL}/status`);
             const status = await res.json();
@@ -230,7 +219,6 @@
             document.getElementById('status-ollama').className = `status-dot status-${status.ollama === 'ok' ? 'ok' : 'error'}`;
         } catch(e) { console.error("Backend irragiungibile", e); }
 
-        // 2. Carica Domini
         try {
             const res = await fetch(`${BACKEND_URL}/domains`);
             const data = await res.json();
@@ -301,7 +289,7 @@
         }
     }
 
-    // --- GOLD STANDARD BUILDER ---
+    // --- GOLD STANDARD ---
     let currentHtmlForGs = "";
     async function fetchHtmlForGS() {
         const url = document.getElementById('gs-url').value;
@@ -372,7 +360,6 @@
         } catch(e) { alert("Errore eliminazione"); }
     }
 
-    // --- STATS ---
     async function loadStats() {
         const tbody = document.getElementById('stats-table');
         tbody.innerHTML = '<tr><td colspan="5">Caricamento statistiche...</td></tr>';
@@ -385,23 +372,39 @@
             supportedDomains.forEach(domain => {
                 const webRes = data.web_resources[domain] || 0;
                 const gs = data.gold_standard[domain] || 0;
-                const avgF1 = (data.avg_eval[domain] && data.avg_eval[domain].token_level_eval) ? data.avg_eval[domain].token_level_eval.f1 : 0.0;
-                const judge = (data.avg_eval_judge[domain]) ? data.avg_eval_judge[domain].judge_score : 0.0;
+                const avgF1 = (data.avg_eval[domain] && data.avg_eval[domain].token_level_eval) ? data.avg_eval[domain].token_level_eval.f1.toFixed(2) : "0.00";
+                const judge = (data.avg_eval_judge[domain]) ? data.avg_eval_judge[domain].judge_score.toFixed(2) : "0.00";
+                
+                let judgeBadge = "";
+                if (gs > 0 && judge === "0.00") {
+                    judgeBadge = `
+                        <br>
+                        <span class="badge bg-warning text-dark mt-1" style="font-size: 0.8em; animation: pulse 1.5s infinite;">
+                            ⏳ In calcolo...
+                        </span>
+                    `;
+                }
 
                 tbody.innerHTML += `
                     <tr>
-                        <td><strong>${domain}</strong></td>
-                        <td>${webRes}</td>
-                        <td>${gs}</td>
-                        <td>${avgF1}</td>
-                        <td>${judge}</td>
+                        <td class="align-middle"><strong>${domain}</strong></td>
+                        <td class="align-middle">${webRes}</td>
+                        <td class="align-middle">${gs}</td>
+                        <td class="align-middle">${avgF1}</td>
+                        <td class="align-middle">
+                            ${judge}
+                            ${judgeBadge}
+                        </td>
                     </tr>
                 `;
             });
         } catch(e) { tbody.innerHTML = '<tr><td colspan="5" class="text-danger">Errore caricamento stat</td></tr>'; }
     }
-
-    // Inizializza tutto all'avvio
+    setInterval(() => {
+        if (document.getElementById('stats').classList.contains('active')) {
+            loadStats();
+        }
+    }, 10000);
     window.onload = initDashboard;
 </script>
 
