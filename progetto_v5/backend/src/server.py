@@ -95,7 +95,7 @@ def calcola_e_salva_valutazione_in_background(url: str, gold_text: str):
         try:
             limite_1 = min(400, len(parsed_pulito)//4)
             limite_2 = min(400, len(gold_pulito)//4)
-            prompt = f"""Confronta i testi. Rispondi SOLO in JSON con "model_name": "{MODEL}", "judge_score" (intero da 0 a 5).
+            prompt = f"""Devi confrontare due testi tra di loro. Rispondi SOLO in JSON con "model_name": "{MODEL}", "judge_score" (intero da 0 a 5),  "judge_feedback": (stringa con una breve spiegazione del voto judge_score).
             T1: {parsed_pulito[:limite_1]}
             T2: {gold_pulito[:limite_2]}"""
             
@@ -284,6 +284,10 @@ class GoldStandardResponse(BaseModel):
     title: str
     html_text: str
     gold_text: str
+
+class Delete(BaseModel):
+    url:str
+
 
 def is_online(host: str, porta: int) -> str:
     try:
@@ -481,7 +485,8 @@ async def parser_post(req: ParseRequest):
         except HTTPException:
             raise 
         except Exception as e:
-            raise HTTPException(status_code=400, detail="URL irraggiungibile")
+            print(f"ERRORE DI CRAWL4AI/PLAYWRIGHT: {str(e)}") 
+            raise HTTPException(status_code=400, detail=f"Errore tecnico: {str(e)}")
 
     titolo_sicuro = "Titolo mancante"
     testo_parsato = ""
@@ -746,7 +751,7 @@ def full_gs_eval(domain: str):
                     try:
                         testo_1 = testo_parsato[:400]
                         testo_2 = gold[:400]
-                        prompt = f"""Confronta i testi. Rispondi SOLO in JSON con "model_name": "{MODEL}", "judge_score" (intero da 1 a 5).
+                        prompt = f"""Devi confrontare due testi tra di loro. Rispondi SOLO in JSON con "model_name": "{MODEL}", "judge_score" (intero da 1 a 5). "judge_feedback": (stringa con una breve spiegazione del voto judge_score).
                         T1: {testo_1}
                         T2: {testo_2}"""
                         
@@ -812,10 +817,10 @@ def full_gs_eval(domain: str):
 @app.post("/evaluate_judge")
 def evaluate_judge(dati: DatiInput): 
     try:
-        prompt = f"""Confronta i testi. Rispondi SOLO ed ESCLUSIVAMENTE in JSON valido con 3 chiavi:
+        prompt = f"""Devi confrontare due testi tra di loro. Rispondi SOLO ed ESCLUSIVAMENTE in JSON valido con 3 chiavi:
         "model_name": "{MODEL}",
         "judge_score": (intero tra 1 e 5),
-        "judge_feedback": (stringa con una breve spiegazione del voto).
+        "judge_feedback": (stringa con una breve spiegazione del voto judge_score).
         
         T1: {dati.parsed_text[:400]}
         T2: {dati.gold_text[:400]}"""
@@ -920,28 +925,9 @@ async def add_web_resource(risorsa: WebResourceInput):
 
 
 @app.delete("/web_resource")
-async def delete_web_resource(request: Request):
-
+async def delete_web_resource(request: Delete):
+    conn=None
     try:
-        url = None
-        try:
-            corpo_json = await request.json()
-            url = corpo_json.get("url")
-        except:
-            pass
-            
-        if not url:
-            try:
-                corpo_form = await request.form()
-                url = corpo_form.get("url")
-            except:
-                pass
-                
-        if not url:
-            url = request.query_params.get("url")
-
-        if not url:
-            return {"status": "error"}
         conn = mariadb.connect(
                 host=db_host,
                 port=db_port,
@@ -952,7 +938,7 @@ async def delete_web_resource(request: Request):
 
         query = "DELETE FROM web_resources WHERE url =?"
             
-        execute_query(conn, query, (url, ))
+        execute_query(conn, query, (request.url, ))
         return {"status":"ok"}
     except Exception as e:
         return {"status":"error"}
@@ -984,30 +970,10 @@ def add_gold_standard(dati : GoldInput, background_tasks: BackgroundTasks):
     
 
 @app.delete("/gold_standard")
-async def delete_gold_standard(request:Request):
-
+async def delete_gold_standard(request:Delete):
+    conn = None
     try:
-        url = None
         
-        try:
-            corpo_json = await request.json()
-            url = corpo_json.get("url")
-        except:
-            pass
-            
-        if not url:
-            try:
-                corpo_form = await request.form()
-                url = corpo_form.get("url")
-            except:
-                pass
-                
-        if not url:
-            url = request.query_params.get("url")
-
-        if not url:
-            return {"status": "error"}
-
         conn = mariadb.connect(
                 host=db_host,
                 port=db_port,
@@ -1018,7 +984,7 @@ async def delete_gold_standard(request:Request):
     
         query = "DELETE FROM gold_standard WHERE url =?"
             
-        execute_query(conn, query, (url, ))
+        execute_query(conn, query, (request.url, ))
         return {"status":"ok"}
     except Exception as e:
         return {"status":"error"}

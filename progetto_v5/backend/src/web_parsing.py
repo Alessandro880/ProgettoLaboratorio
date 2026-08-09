@@ -95,7 +95,7 @@ def clean_wikipedia_text(html_content):
 
     return formatta_in_markdown(titolo, testo_convertito)
 
-
+# PARSER OLYMPICS
 
 def clean_olympics_markdown(markdown_grezzo: str) -> tuple:
     linee = markdown_grezzo.split('\n')
@@ -196,6 +196,7 @@ def clean_olympics_text(html_content):
         if testo:
             blocchi.append((tag.name, testo))
 
+    # LISTA PULITA: Rimosse parole generiche come 'altro', 'sport', 'giochi olimpici', 'comitato olimpico internazionale'
     parole_spazzatura = {
         'condividi', 'share', 'leggi di più', 'read more', 'newsletter',
         'copyright', 'all rights reserved', 'advertisement', 'pubblicità',
@@ -203,22 +204,18 @@ def clean_olympics_text(html_content):
         'scopri e rivivi', 'olympic channel', 'film e serie', 'best of',
         'originali', 'in associazione con', 'privacy policy', 'terms of service',
         'sitemap', 'contact centre', 'about us', 'shop', 'museum',
-        'international olympic committee', 'explore', 'topics', 'podcast',
-        'corporate', 'original series', 'live events', 'tv channel',
-        'all olympic games', 'replays & highlights', 'results & medals',
+        'explore', 'topics', 'podcast', 'corporate', 'original series', 
+        'live events', 'tv channel', 'replays & highlights', 'results & medals',
         'you may like', 'featured', 'quick update: we have updated', 'find it here',
-        'olympic games milano cortina 2026',
-        'giochi olimpici', 'milano cortina 2026', 'replay e highlights',
-        'tutti i giochi olimpici', 'canali tv', 'eventi in diretta',
-        'dati societari', 'notizie', 'argomenti', 'esplora', 'atleti',
-        'sport', 'altro', 'comitato olimpico internazionale', 'museo',
-        'negozio', 'su di noi', 'contatti', 'mappa del sito', 'lavoro',
+        'replay e highlights', 'canali tv', 'eventi in diretta',
+        'dati societari', 'notizie', 'argomenti', 'esplora',
+        'museo', 'negozio', 'su di noi', 'contatti', 'mappa del sito', 'lavoro',
         'politica sulla privacy', 'termini del servizio', 'risultati e medaglie',
         'anthem', 'replays', 'olympic results', 'athlete olympic results content',
         'athlete olympic', 'highlights', 'social network',
-        'anno di nascita', 'year of birth',
+        'anno di nascita', 'year of birth', 'scopri i giochi', 'il look', 'la torcia'
     }
-    menu_esatti = {'athletes', 'sports', 'more', 'news'}
+    menu_esatti = {'athletes', 'sports', 'more', 'news', 'le medaglie', 'i giochi'}
 
     seen = set()
     for tag_name, testo in blocchi:
@@ -231,7 +228,9 @@ def clean_olympics_text(html_content):
         if testo_lower == titolo.lower():
             continue
 
-        if any(p in testo_lower for p in parole_spazzatura):
+        # REGOLA D'ORO: Se il testo è corto (< 80 caratteri) E contiene una parola spazzatura, lo scartiamo.
+        # Se invece è lungo (un vero paragrafo), lo teniamo SEMPRE!
+        if len(testo) < 80 and any(p in testo_lower for p in parole_spazzatura):
             continue
 
         if testo_lower in menu_esatti:
@@ -254,7 +253,114 @@ def clean_olympics_text(html_content):
             righe_pulite.append(linea)
         precedente = linea
 
-    return [titolo,"\n\n".join(righe_pulite)]
+    return [titolo, "\n\n".join(righe_pulite)]
+
+# def clean_olympics_text(html_content):
+#     soup = BeautifulSoup(html_content, 'html.parser')
+
+#     for tag in soup.find_all(['nav', 'header', 'footer', 'aside', 'script',
+#                                'style', 'svg', 'button', 'form', 'iframe',
+#                                'picture', 'video']):
+#         tag.decompose()
+
+#     titolo_tag = soup.find('h1')
+#     titolo = titolo_tag.get_text(separator=' ', strip=True) if titolo_tag else "Titolo non trovato"
+
+#     righe_finali = []
+
+#     nocs = soup.find(attrs={"data-cy": "nocs"})
+#     if nocs:
+#         for span in nocs.find_all('span'):
+#             t = span.get_text(strip=True)
+#             if t and len(t) > 1:
+#                 righe_finali.append(t)
+
+#     disciplines = soup.find(attrs={"data-cy": "disciplines"})
+#     if disciplines:
+#         for span in disciplines.find_all('span'):
+#             t = span.get_text(strip=True)
+#             if t and len(t) > 1:
+#                 righe_finali.append(t)
+
+#     profile = soup.find(attrs={"data-cy": "athlete-profile"})
+#     if profile:
+#         for row in profile.find_all(class_=lambda c: c and 'fOoPCV' in c):
+#             t = row.get_text(separator='\n', strip=True)
+#             if t:
+#                 righe_finali.append(t)
+
+#     main_area = (soup.find('main') or soup.find(id='__next') or
+#                  soup.find(id='root') or soup.find('article') or
+#                  soup.find('body') or soup)
+
+#     blocchi = []
+#     for tag in main_area.find_all(['p', 'h1', 'h2', 'h3', 'h4', 'li']):
+#         testo = tag.get_text(separator=' ', strip=True)
+#         testo = ' '.join(testo.split())
+#         if testo:
+#             blocchi.append((tag.name, testo))
+
+#     parole_spazzatura = {
+#         'condividi', 'share', 'leggi di più', 'read more', 'newsletter',
+#         'copyright', 'all rights reserved', 'advertisement', 'pubblicità',
+#         'cookie', 'accetta', 'rifiuta', 'guarda anche',
+#         'scopri e rivivi', 'olympic channel', 'film e serie', 'best of',
+#         'originali', 'in associazione con', 'privacy policy', 'terms of service',
+#         'sitemap', 'contact centre', 'about us', 'shop', 'museum',
+#         'international olympic committee', 'explore', 'topics', 'podcast',
+#         'corporate', 'original series', 'live events', 'tv channel',
+#         'all olympic games', 'replays & highlights', 'results & medals',
+#         'you may like', 'featured', 'quick update: we have updated', 'find it here',
+#         'olympic games milano cortina 2026',
+#         'giochi olimpici', 'milano cortina 2026', 'replay e highlights',
+#         'tutti i giochi olimpici', 'canali tv', 'eventi in diretta',
+#         'dati societari', 'notizie', 'argomenti', 'esplora', 'atleti',
+#         'sport', 'altro', 'comitato olimpico internazionale', 'museo',
+#         'negozio', 'su di noi', 'contatti', 'mappa del sito', 'lavoro',
+#         'politica sulla privacy', 'termini del servizio', 'risultati e medaglie',
+#         'anthem', 'replays', 'olympic results', 'athlete olympic results content',
+#         'athlete olympic', 'highlights', 'social network',
+#         'anno di nascita', 'year of birth',
+#     }
+#     menu_esatti = {'athletes', 'sports', 'more', 'news'}
+
+#     seen = set()
+#     for tag_name, testo in blocchi:
+#         testo_lower = testo.lower()
+
+#         if testo_lower in seen:
+#             continue
+#         seen.add(testo_lower)
+
+#         if testo_lower == titolo.lower():
+#             continue
+
+#         if any(p in testo_lower for p in parole_spazzatura):
+#             continue
+
+#         if testo_lower in menu_esatti:
+#             continue
+
+#         if '|' in testo and len(testo) < 50:
+#             continue
+
+#         if tag_name == 'h1':
+#             pass
+#         elif tag_name in ('h2', 'h3', 'h4'):
+#             righe_finali.append(testo)
+#         elif len(testo.split()) >= 2:
+#             righe_finali.append(testo)
+
+#     righe_pulite = []
+#     precedente = None
+#     for linea in righe_finali:
+#         if linea != precedente:
+#             righe_pulite.append(linea)
+#         precedente = linea
+
+#     return [titolo,"\n\n".join(righe_pulite)]
+
+
 
 
 # Parser GOVERNO

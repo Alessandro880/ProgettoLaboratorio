@@ -14,7 +14,15 @@
         .status-error { background-color: #dc3545; }
         .section-view { display: none; }
         .section-view.active { display: block; }
-        pre { background-color: #f1f3f5; padding: 15px; border-radius: 5px; max-height: 400px; overflow-y: auto; }
+        pre { 
+            background-color: #f1f3f5; 
+            padding: 15px; 
+            border-radius: 5px; 
+            height: 450px;           /* Forza l'altezza uguale per entrambi */
+            overflow-y: auto;        /* Mantiene lo scorrimento verticale */
+            white-space: pre-wrap;   /* Forza il testo ad andare a capo... */
+            word-wrap: break-word;   /* ...spezzando le parole/tag troppo lunghi */
+        }
     </style>
 </head>
 <body>
@@ -114,7 +122,7 @@
                     <div class="col-md-3"><h5>Precision</h5><h3 id="eval-prec">-</h3></div>
                     <div class="col-md-3"><h5>Recall</h5><h3 id="eval-rec">-</h3></div>
                     <div class="col-md-3"><h5>F1 Score</h5><h3 id="eval-f1">-</h3></div>
-                    <div class="col-md-3"><h5>LLM Judge</h5><h3 id="eval-judge">-</h3><small id="eval-feedback"></small></div>
+                    <div class="col-md-3"><h5>LLM Judge (T1:Gold)</h5><h3 id="eval-judge">-</h3><small id="eval-feedback"></small></div>
                 </div>
             </div>
         </div>
@@ -256,7 +264,7 @@
             const parsedData = await res.json();
             if(!res.ok) throw new Error(parsedData.detail || "Errore parser");
 
-            document.getElementById('parse-html').innerText = parsedData.html_text.substring(0, 1500) + "\n\n...[TRONCATO PER VISUALIZZAZIONE]...";
+            document.getElementById('parse-html').innerText = parsedData.html_text;
             document.getElementById('parse-md').innerText = parsedData.parsed_text;
 
             const gsRes = await fetch(`${BACKEND_URL}/gold_standard?url=${encodeURIComponent(url)}`);

@@ -17,6 +17,7 @@ RUN apt-get update && apt-get install -y \
 # 3. Installa le librerie Python
 RUN pip install --no-cache-dir -r requirements.txt
 RUN crawl4ai-setup
+RUN playwright install --with-deps chromium
 
 COPY src/ .
 
