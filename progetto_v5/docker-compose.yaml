@@ -82,6 +82,7 @@ services:
      
     restart: always
 
+
 # Dichiarazione globale del volume
 volumes:
   ollama_data:
