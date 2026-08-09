@@ -99,6 +99,7 @@ def calcola_e_salva_valutazione_in_background(url: str, gold_text: str):
             T1: {parsed_pulito[:limite_1]}
             T2: {gold_pulito[:limite_2]}"""
             
+            
             response = ollama_client.generate(model=MODEL, prompt=prompt, format="json", options={"temperature": 0.0})
             res_json = json.loads(response['response'])
             judge = float(res_json.get("judge_score", 0.0))
