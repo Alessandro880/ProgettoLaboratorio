@@ -42,6 +42,9 @@ db_user = os.getenv("DB_USER", "user")
 db_password = os.getenv("DB_PASSWORD", "sonoio")
 db_name = os.getenv("DB_NAME", "project_db")
 
+'''
+    Permette di eseguire le quesry SQL
+'''
 def execute_query(conn: mariadb.Connection, query: str, data: tuple = None):
     """Esegue una query e restituisce i risultati se è una SELECT"""
     with conn.cursor() as cursor:
@@ -58,7 +61,9 @@ def execute_query(conn: mariadb.Connection, query: str, data: tuple = None):
     conn.commit()
     return result
 
-
+'''
+    Permette di calcolare la tabella evauations interrogando l'LLM in modo da essere più efficienti
+'''
 def calcola_e_salva_valutazione_in_background(url: str, gold_text: str):
     conn = None
     try:
@@ -120,7 +125,10 @@ def calcola_e_salva_valutazione_in_background(url: str, gold_text: str):
     finally:
         if conn: conn.close()
 
-
+'''
+    Controlla se qualche elemtendo del Gold Standard non è presente in evaluetion, in tal caso ne calcola i valori chiamando la 
+    funzione calcola_e_salva_valutazione_in_background
+'''
 
 def calcola_valutazioni_mancanti():
     """Cerca nel database i documenti che non hanno ancora una valutazione e la calcola"""
@@ -150,7 +158,7 @@ def calcola_valutazioni_mancanti():
         if conn: conn.close()
 
 
-# --- FUNZIONE DI INIZIALIZZAZIONE ---
+# --- FUNZIONE DI INIZIALIZZAZIONE DATABASE---
 def inizializza_e_popola_db():
     percorso_gs = "/app/gs_data"
     percorso_domains = "/app/domains.json"
@@ -413,7 +421,7 @@ async def parser_page(url: str) -> dict:
 
 
 """
-    Funzione di parse, prende un PaginaWebRequest in ingresso, controlla che sia corretto il page.url e se è supportato il dominio,
+    Funzione di parse, prende un ParseRequest in ingresso, controlla che sia corretto il page.url e se è supportato il dominio,
     poi sceglie il parser da usare e restituisce il dizionario come richiesto parsando il page.html_text
     {
         "url":"https://www.example.it/prova",
@@ -814,7 +822,9 @@ def full_gs_eval(domain: str):
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail=f"Problema apertura {domain}.json")
 
-
+'''
+    Interroga l'LLM tramite i due testi dati in input per confrontarli tra loro 
+'''
 @app.post("/evaluate_judge")
 def evaluate_judge(dati: DatiInput): 
     try:
@@ -860,7 +870,9 @@ def evaluate_judge(dati: DatiInput):
             "judge_feedback": "Errore durante la valutazione"
         }
 
-
+'''
+    Permette di ottenere tutti gli url di un determinato dominio registrati nel gold standard
+'''
 @app.get("/gold_standard_urls")
 def gold_standard_urls(request: Request, domain:str ):
     
@@ -895,7 +907,9 @@ def gold_standard_urls(request: Request, domain:str ):
     finally:
         conn.close()
 
-
+'''
+    Permette di aggiungere una web_resource
+'''
 @app.post("/add_web_resource")
 async def add_web_resource(risorsa: WebResourceInput):
     conn = None
@@ -924,7 +938,9 @@ async def add_web_resource(risorsa: WebResourceInput):
         if conn is not None:
             conn.close()
 
-
+'''
+    Elimina una determinata web_resource
+'''
 @app.delete("/web_resource")
 async def delete_web_resource(request: Delete):
     conn=None
@@ -946,7 +962,9 @@ async def delete_web_resource(request: Delete):
     finally:
             conn.close()
 
-
+'''
+    Aggiunge un gold_standard
+'''
 @app.post("/add_gold_standard")
 def add_gold_standard(dati : GoldInput, background_tasks: BackgroundTasks):
 
@@ -969,7 +987,9 @@ def add_gold_standard(dati : GoldInput, background_tasks: BackgroundTasks):
     finally:
             conn.close()
     
-
+'''
+    Rimuove un gold_standard
+'''
 @app.delete("/gold_standard")
 async def delete_gold_standard(request:Delete):
     conn = None
@@ -992,6 +1012,9 @@ async def delete_gold_standard(request:Delete):
     finally:
             conn.close()
 
+'''
+    Mostra lo schema del Database relizzato
+'''
 @app.get("/db_schema")
 def db_schema():
     return {
@@ -1020,7 +1043,9 @@ def db_schema():
         }
     }
 
-
+'''
+    Mostra lo stato del backend, frontend, maridadb e ollama
+'''
 @app.get("/status")
 async def status():
     return {
@@ -1029,7 +1054,9 @@ async def status():
         "ollama": is_online("ollama_service", 11434)
     }
 
-
+'''
+    Mostra gli elementi del database
+'''
 @app.get("/db_stats")
 def db_stats():
     conn = None

@@ -20,19 +20,6 @@ import difflib
 """
 
 def token_level_eval(testo_estratto: str, testo_gs: str) -> dict:
-    """
-    Calcola Precision, Recall e F1-score a livello di token.
-    
-    Parametri :
-    testo_estratto: Il testo prodotto dal parser (già pulito).
-    testo_gs: Il testo del Gold Standard di riferimento.
-    
-    Return:
-    Dizionario contenente le metriche calcolate:
-        • precision
-        • recall
-        • f1
-    """
     
     tokens_estratti = set(testo_estratto.lower().split())
     tokens_gs = set(testo_gs.lower().split())
